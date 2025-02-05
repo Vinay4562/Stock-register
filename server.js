@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
-const bcrypt = require('bcryptjs'); // Ensure bcryptjs is installed
+const bcrypt = require('bcryptjs'); // bcryptjs for password hashing
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -12,11 +12,15 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+const users = [
+  { username: 'admin', password: bcrypt.hashSync('password123', 10) }
+];
+
 // CORS setup
 const corsOptions = {
-  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'], 
+  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true, // Allow cookies for session-based authentication
+  credentials: true,
 };
 app.use(cors(corsOptions));
 
@@ -24,12 +28,12 @@ app.use(cors(corsOptions));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'chantichitti2255@',
   resave: false,
-  saveUninitialized: false, // Set to false to avoid creating empty sessions
+  saveUninitialized: false,
   cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true }
 }));
 
 // MongoDB connection
-const mongoURI = process.env.MONGODB_URI; // Use the environment variable
+const mongoURI = process.env.MONGODB_URI; 
 async function connectDB() {
   try {
     await mongoose.connect(mongoURI, {
@@ -40,15 +44,15 @@ async function connectDB() {
     console.log("Connected to MongoDB");
   } catch (err) {
     console.error("MongoDB Connection Error: ", err);
-    process.exit(1); // Exit if unable to connect
+    process.exit(1);
   }
 }
 connectDB();
 
 // User schema
 const userSchema = new mongoose.Schema({
-  username: String,
-  password: String,
+  username: { type: String, required: true, unique: true },
+  password: { type: String, required: true },
 });
 const User = mongoose.model('User', userSchema);
 
@@ -63,34 +67,44 @@ const materialSchema = new mongoose.Schema({
 });
 const Material = mongoose.model('Material', materialSchema);
 
-// Register user (For testing - Remove in production)
+// Register user (for testing - remove in production)
 app.post('/register', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ success: false, message: "Username and password are required" });
 
+    // Check if the username already exists
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: "Username already exists" });
+    }
+
+    // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({ username, password: hashedPassword });
     await newUser.save();
     
-    res.json({ success: true, message: "User registered" });
+    res.json({ success: true, message: "User registered successfully" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error: " + error.message });
   }
 });
 
-// Login
+// Login route with password check
 app.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ success: false, message: "Username and password required" });
 
+    // Find the user by username
     const user = await User.findOne({ username });
     if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
+    // Compare the password with the hashed password in the database
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
+    // Create a session on successful login
     req.session.user = username;
     res.json({ success: true, redirect: '/material_index.html' });
   } catch (error) {
@@ -112,7 +126,7 @@ app.get('/check-login', (req, res) => {
   res.json({ loggedIn: !!req.session.user });
 });
 
-// Logout
+// Logout route
 app.post('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) return res.status(500).json({ success: false, message: 'Logout failed' });
@@ -178,7 +192,7 @@ app.delete('/api/materials/:id', isAuthenticated, async (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 8000; // Dynamically use the port from .env
+const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
