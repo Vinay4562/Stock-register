@@ -6,7 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
 
-dotenv.config();
+dotenv.config(); // Load environment variables from .env file
 
 const app = express();
 app.use(express.json());
@@ -22,14 +22,14 @@ app.use(cors(corsOptions));
 
 // Session setup
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'mysecret',
+  secret: process.env.SESSION_SECRET || 'chantichitti2255@',
   resave: false,
   saveUninitialized: false, // Set to false to avoid creating empty sessions
   cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true }
 }));
 
 // MongoDB connection
-const mongoURI = process.env.MONGODB_URI;
+const mongoURI = process.env.MONGODB_URI; // Use the environment variable
 async function connectDB() {
   try {
     await mongoose.connect(mongoURI, {
@@ -178,7 +178,7 @@ app.delete('/api/materials/:id', isAuthenticated, async (req, res) => {
 });
 
 // Start server
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 8000; // Dynamically use the port from .env
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
