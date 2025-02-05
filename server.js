@@ -1,62 +1,37 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
-const bcrypt = require('bcryptjs'); // bcryptjs for password hashing
+const bcrypt = require('bcrypt');
 const cors = require('cors');
 const path = require('path');
-const dotenv = require('dotenv');
-
-dotenv.config(); // Load environment variables from .env file
+require('dotenv').config();
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const users = [
-  { username: 'admin', password: bcrypt.hashSync('password123', 10) }
-];
-
-// CORS setup
+// CORS setup to allow requests from localhost for local development
 const corsOptions = {
-  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'],
+  origin: 'http://localhost:8000', // Allow requests from localhost:8000 (your frontend)
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true,
+  credentials: true, // Allow cookies (sessions) to be sent
 };
+
 app.use(cors(corsOptions));
 
 // Session setup
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'chantichitti2255@',
+  secret: process.env.SESSION_SECRET || 'mysecret',
   resave: false,
-  saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true }
+  saveUninitialized: true,
+  cookie: { secure: false } // Set to false for local development (set to true when using HTTPS)
 }));
 
-// MongoDB connection
-const mongoURI = process.env.MONGODB_URI; 
-async function connectDB() {
-  try {
-    await mongoose.connect(mongoURI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 20000, // 20s timeout
-    });
-    console.log("Connected to MongoDB");
-  } catch (err) {
-    console.error("MongoDB Connection Error: ", err);
-    process.exit(1);
-  }
-}
-connectDB();
+const mongoURI = process.env.MONGODB_URI;
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.log("MongoDB Connection Error: ", err));
 
-// User schema
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-});
-const User = mongoose.model('User', userSchema);
-
-// Material schema
 const materialSchema = new mongoose.Schema({
   name: String,
   type: String,
@@ -67,52 +42,22 @@ const materialSchema = new mongoose.Schema({
 });
 const Material = mongoose.model('Material', materialSchema);
 
-// Register user (for testing - remove in production)
-app.post('/register', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ success: false, message: "Username and password are required" });
+const users = [
+  { username: 'admin', password: bcrypt.hashSync('password123', 10) }
+];
 
-    // Check if the username already exists
-    const existingUser = await User.findOne({ username });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: "Username already exists" });
-    }
-
-    // Hash the password before saving
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, password: hashedPassword });
-    await newUser.save();
-    
-    res.json({ success: true, message: "User registered successfully" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Server error: " + error.message });
-  }
-});
-
-// Login route with password check
 app.post('/login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ success: false, message: "Username and password required" });
+  const { username, password } = req.body;
+  const user = users.find(u => u.username === username);
 
-    // Find the user by username
-    const user = await User.findOne({ username });
-    if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
-
-    // Compare the password with the hashed password in the database
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ success: false, message: 'Invalid credentials' });
-
-    // Create a session on successful login
+  if (user && await bcrypt.compare(password, user.password)) {
     req.session.user = username;
     res.json({ success: true, redirect: '/material_index.html' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: "Server error: " + error.message });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 });
 
-// Authentication middleware
 function isAuthenticated(req, res, next) {
   if (req.session.user) {
     next();
@@ -121,21 +66,24 @@ function isAuthenticated(req, res, next) {
   }
 }
 
-// Check login status
 app.get('/check-login', (req, res) => {
-  res.json({ loggedIn: !!req.session.user });
+  if (req.session.user) {
+    res.json({ loggedIn: true });
+  } else {
+    res.json({ loggedIn: false });
+  }
 });
 
-// Logout route
 app.post('/logout', (req, res) => {
   req.session.destroy(err => {
-    if (err) return res.status(500).json({ success: false, message: 'Logout failed' });
+    if (err) return res.status(500).json({ message: 'Logout failed' });
+
+    // Clear the cache and disable back navigation
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.json({ success: true, redirect: '/login.html' });
   });
 });
 
-// Fetch materials
 app.get('/api/materials', isAuthenticated, async (req, res) => {
   try {
     const materials = await Material.find();
@@ -145,20 +93,18 @@ app.get('/api/materials', isAuthenticated, async (req, res) => {
   }
 });
 
-// Get last updated timestamp
 app.get('/api/last-updated', isAuthenticated, async (req, res) => {
   try {
-    const lastUpdated = await Material.findOne({}, {}, { sort: { lastUpdated: -1 } }).select('lastUpdated');
+    const lastUpdated = await Material.findOne({}, {}, { sort: { updatedAt: -1 } }).select('updatedAt');
     if (!lastUpdated) {
       return res.status(404).json({ message: 'Last updated data not found' });
     }
-    res.json({ lastUpdated: lastUpdated.lastUpdated });
+    res.json({ lastUpdated: lastUpdated.updatedAt });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// Add material
 app.post('/api/materials', isAuthenticated, async (req, res) => {
   try {
     const newMaterial = new Material(req.body);
@@ -169,29 +115,34 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
   }
 });
 
-// Update material
 app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
+  const { id } = req.params;
+  const { name, type, stock, dispatched, remarks } = req.body;
+
   try {
-    const material = await Material.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    if (!material) return res.status(404).json({ message: "Material not found" });
+    const material = await Material.findById(id);
+    material.name = name;
+    material.type = type;
+    material.stock = stock;
+    material.dispatched = dispatched;
+    material.remarks = remarks;
+    material.lastUpdated = Date.now();
+    await material.save();
     res.json(material);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Delete material
 app.delete('/api/materials/:id', isAuthenticated, async (req, res) => {
   try {
-    const material = await Material.findByIdAndDelete(req.params.id);
-    if (!material) return res.status(404).json({ message: "Material not found" });
+    await Material.findByIdAndDelete(req.params.id);
     res.json({ message: "Material deleted" });
   } catch (err) {
     res.status(500).send("Error deleting material: " + err.message);
   }
 });
 
-// Start server
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
