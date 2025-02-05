@@ -12,7 +12,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // CORS setup to allow requests from localhost for local development
 const corsOptions = {
-  origin: 'http://localhost:8000', // Allow requests from localhost:8000 (your frontend)
+  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'], // Array of allowed origins
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true, // Allow cookies (sessions) to be sent
 };
