@@ -190,7 +190,7 @@
     // Function to load the last updated date and time from localStorage
     async function loadLastUpdated() {
         try {
-            const response = await fetch('http://localhost:8000/api/materials');
+            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
             if (response.ok) {
                 const materials = await response.json();
                 const latestMaterial = materials.reduce((latest, current) => {
@@ -308,7 +308,7 @@
     // Function to fetch materials from the server
     async function fetchMaterials() {
         try {
-            const response = await fetch('http://localhost:8000/api/materials');
+            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
             if (response.ok) {
                 materials = await response.json(); // Store fetched materials in the materials array
                 renderStock(); // Render materials stock
@@ -392,7 +392,7 @@
     // Delete material
     async function deleteMaterial(index) {
         const id = materials[index]._id;
-        const response = await fetch(`http://localhost:8000/api/materials/${id}`, { method: "DELETE" });
+        const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${id}`, { method: "DELETE" });
         if (response.ok) {
             showMessage("Material deleted successfully!", "delete");
             fetchMaterials(); // Refresh the list
@@ -469,7 +469,7 @@
                 };
 
                 try {
-                    const response = await fetch(`http://localhost:8000/api/materials/${material._id}`, {
+                    const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${material._id}`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(updatedMaterial),
