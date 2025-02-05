@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
@@ -21,7 +21,7 @@ app.use(cors(corsOptions));
 
 // Session setup
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'mysecret',
+  secret: process.env.SESSION_SECRET || 'chantichitti2255@',
   resave: false,
   saveUninitialized: true,
   cookie: { secure: false } // Set to false for local development (set to true when using HTTPS)
