@@ -14,9 +14,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // CORS setup
 const corsOptions = {
-  origin: 'http://localhost:8000', // Adjust if frontend runs on a different port
+  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'], 
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true,
+  credentials: true, // Allow cookies for session-based authentication
 };
 app.use(cors(corsOptions));
 
