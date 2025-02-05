@@ -1,7 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcryptjs'); // Ensure bcryptjs is installed
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
@@ -24,20 +24,26 @@ app.use(cors(corsOptions));
 app.use(session({
   secret: process.env.SESSION_SECRET || 'mysecret',
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production' } // Secure in production
+  saveUninitialized: false, // Set to false to avoid creating empty sessions
+  cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true }
 }));
 
 // MongoDB connection
 const mongoURI = process.env.MONGODB_URI;
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  useCreateIndex: true, 
-  useFindAndModify: false
-})
-  .then(() => console.log("Connected to MongoDB"))
-  .catch(err => console.log("MongoDB Connection Error: ", err));
+async function connectDB() {
+  try {
+    await mongoose.connect(mongoURI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 20000, // 20s timeout
+    });
+    console.log("Connected to MongoDB");
+  } catch (err) {
+    console.error("MongoDB Connection Error: ", err);
+    process.exit(1); // Exit if unable to connect
+  }
+}
+connectDB();
 
 // User schema
 const userSchema = new mongoose.Schema({
@@ -59,23 +65,36 @@ const Material = mongoose.model('Material', materialSchema);
 
 // Register user (For testing - Remove in production)
 app.post('/register', async (req, res) => {
-  const { username, password } = req.body;
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = new User({ username, password: hashedPassword });
-  await newUser.save();
-  res.json({ success: true, message: "User registered" });
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ success: false, message: "Username and password are required" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({ username, password: hashedPassword });
+    await newUser.save();
+    
+    res.json({ success: true, message: "User registered" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error: " + error.message });
+  }
 });
 
 // Login
 app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
-  const user = await User.findOne({ username });
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ success: false, message: "Username and password required" });
 
-  if (user && await bcrypt.compare(password, user.password)) {
+    const user = await User.findOne({ username });
+    if (!user) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+
     req.session.user = username;
     res.json({ success: true, redirect: '/material_index.html' });
-  } else {
-    res.status(401).json({ success: false, message: 'Invalid credentials' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error: " + error.message });
   }
 });
 
@@ -96,7 +115,7 @@ app.get('/check-login', (req, res) => {
 // Logout
 app.post('/logout', (req, res) => {
   req.session.destroy(err => {
-    if (err) return res.status(500).json({ message: 'Logout failed' });
+    if (err) return res.status(500).json({ success: false, message: 'Logout failed' });
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.json({ success: true, redirect: '/login.html' });
   });
