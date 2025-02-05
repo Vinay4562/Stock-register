@@ -1,0 +1,168 @@
+/* General reset and body styling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f0f0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center; /* Horizontally center the content */
+    align-items: center; /* Vertically center the content */
+    flex-direction: column;
+    padding-top: 150px; /* Add padding to avoid content being hidden behind the fixed header */
+    position: relative; /* Ensure the flex container works as expected */
+}
+
+/* Header with blue theme - fixed at the top */
+.header {
+    display: flex;
+    flex-direction: column; /* Stack the logo and navbar vertically */
+    align-items: center;
+    justify-content: center;
+    background-color: #007BFF; /* Blue background */
+    padding: 20px;
+    width: 100%; /* Ensure the header takes up the full width */
+    position: fixed; /* Fix the header at the top */
+    top: 0;
+    left: 0;
+    z-index: 1000; /* Ensure the header stays on top of other content */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Logo styling */
+.logo {
+    width: 100px; /* Adjust size as needed */
+    margin-right: 20px;
+    background-color: white; /* Remove background color */
+    position: absolute;
+    left: 20px; /* Align logo to the left side of the header */
+}
+
+h1 {
+    font-size: 2rem;
+    color: white; /* White text color */
+    letter-spacing: 1px;
+    animation: slideUp 1s ease-out;
+    font-weight: 700;
+    margin-left: 120px; /* Space for the logo */
+    text-align: center;
+}
+
+/* Navbar inside the header */
+.navbar {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    background-color: transparent; /* Darker blue for navbar */
+    padding: 10px 0;
+    width: 100%;
+    border-radius: 5px;
+    animation: fadeIn 2s ease-in-out;
+    margin-top: 10px; /* Space between the heading and navbar */
+}
+
+.navbar a {
+    text-decoration: none;
+    color: white; /* White text for navbar links */
+    font-size: 1.1rem;
+    transition: color 0.3s ease-in-out;
+}
+
+.navbar a:hover {
+    color: #ffcc00; /* Gold color on hover */
+}
+
+/* Login form styling */
+.login-container {
+    background-color: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    animation: fadeIn 2s ease-in-out;
+    margin-top: 40px; /* Adjust to place the container under the fixed header */
+}
+
+/* Centered Login form */
+h2 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 2px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease-in-out;
+}
+
+input:focus {
+    border-color: #007BFF;
+    outline: none;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    background-color: #007BFF; /* Blue button */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease-in-out;
+}
+
+button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+}
+
+.error {
+    color: red;
+    font-size: 1rem;
+    margin-top: 10px;
+    opacity: 0;
+    animation: fadeInError 2s forwards;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    0% {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInError {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}

@@ -1,0 +1,149 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const session = require('express-session');
+const bcrypt = require('bcrypt');
+const cors = require('cors');
+const path = require('path');
+require('dotenv').config();
+
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// CORS setup to allow requests from localhost for local development
+const corsOptions = {
+  origin: 'http://localhost:8000', // Allow requests from localhost:8000 (your frontend)
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true, // Allow cookies (sessions) to be sent
+};
+
+app.use(cors(corsOptions));
+
+// Session setup
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'mysecret',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false } // Set to false for local development (set to true when using HTTPS)
+}));
+
+const mongoURI = process.env.MONGODB_URI;
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.log("MongoDB Connection Error: ", err));
+
+const materialSchema = new mongoose.Schema({
+  name: String,
+  type: String,
+  stock: Number,
+  dispatched: Number,
+  remarks: [String],
+  lastUpdated: { type: Date, default: Date.now },
+});
+const Material = mongoose.model('Material', materialSchema);
+
+const users = [
+  { username: 'admin', password: bcrypt.hashSync('password123', 10) }
+];
+
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find(u => u.username === username);
+
+  if (user && await bcrypt.compare(password, user.password)) {
+    req.session.user = username;
+    res.json({ success: true, redirect: '/material_index.html' });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid credentials' });
+  }
+});
+
+function isAuthenticated(req, res, next) {
+  if (req.session.user) {
+    next();
+  } else {
+    res.status(403).json({ message: 'Unauthorized' });
+  }
+}
+
+app.get('/check-login', (req, res) => {
+  if (req.session.user) {
+    res.json({ loggedIn: true });
+  } else {
+    res.json({ loggedIn: false });
+  }
+});
+
+app.post('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) return res.status(500).json({ message: 'Logout failed' });
+
+    // Clear the cache and disable back navigation
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.json({ success: true, redirect: '/login.html' });
+  });
+});
+
+app.get('/api/materials', isAuthenticated, async (req, res) => {
+  try {
+    const materials = await Material.find();
+    res.json(materials);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.get('/api/last-updated', isAuthenticated, async (req, res) => {
+  try {
+    const lastUpdated = await Material.findOne({}, {}, { sort: { updatedAt: -1 } }).select('updatedAt');
+    if (!lastUpdated) {
+      return res.status(404).json({ message: 'Last updated data not found' });
+    }
+    res.json({ lastUpdated: lastUpdated.updatedAt });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+app.post('/api/materials', isAuthenticated, async (req, res) => {
+  try {
+    const newMaterial = new Material(req.body);
+    await newMaterial.save();
+    res.json(newMaterial);
+  } catch (err) {
+    res.status(500).send("Error saving material: " + err.message);
+  }
+});
+
+app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
+  const { id } = req.params;
+  const { name, type, stock, dispatched, remarks } = req.body;
+
+  try {
+    const material = await Material.findById(id);
+    material.name = name;
+    material.type = type;
+    material.stock = stock;
+    material.dispatched = dispatched;
+    material.remarks = remarks;
+    material.lastUpdated = Date.now();
+    await material.save();
+    res.json(material);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.delete('/api/materials/:id', isAuthenticated, async (req, res) => {
+  try {
+    await Material.findByIdAndDelete(req.params.id);
+    res.json({ message: "Material deleted" });
+  } catch (err) {
+    res.status(500).send("Error deleting material: " + err.message);
+  }
+});
+
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});

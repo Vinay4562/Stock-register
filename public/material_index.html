@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="material_style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.1/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <title>Material Stock Inventory</title>
+</head>
+<body>
+
+    <div class="header">
+        <img src="logo_new.png" alt="Logo" class="logo" width="130px" height="100px">
+        <div class="header-text">
+            <header>𝐓𝐑𝐀𝐍𝐒𝐌𝐈𝐒𝐒𝐈𝐎𝐍 𝐂𝐎𝐑𝐏𝐎𝐑𝐀𝐓𝐈𝐎𝐍 𝐎𝐅 𝐓𝐄𝐋𝐀𝐍𝐆𝐀𝐍𝐀 𝐋𝐈𝐌𝐈𝐓𝐄𝐃</header>
+            <header class="material-stock">Material Stock Inventory</header>
+        </div>
+        <button id="logout-btn" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+    </div>
+    
+  <div class="container">
+    <div class="dashboard">
+      <h2 id="dashboard-heading">Dashboard</h2>
+      <div class="download-buttons">
+        <button id="download-excel-btn">
+            <i class="fas fa-file-csv"></i>
+        </button>
+        <button id="download-pdf-btn">
+            <i class="fas fa-file-pdf"></i>
+        </button>
+    </div>
+      <p id="last-updated">Last Updated: Not Available</p>
+      <!-- Add this search bar above the summary table -->
+    <div class="search-container">
+        <input type="text" id="search-bar" placeholder="Search by material name or type..." />
+    </div>  
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>S.No</th>
+            <th>Material Type</th>
+            <th>Total Available Stock</th>
+            <th>Total Used/Dispatched</th>
+            <th>Total Material</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="material-summary-container">
+          <!-- Material summaries will be dynamically added here -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="stock-form">
+      <h2>Add/Edit Material</h2>
+
+      <label for="material-type">Material Type</label>
+      <select id="material-type">
+        <option value="">Select type</option>
+        <option value="400KV CVT">400KV CVT</option>
+        <option value="400KV CT">400KV CT</option>
+        <option value="400KV LA">400KV LA</option>
+        <option value="400KV CB">400KV CB</option>
+        <option value="220KV CVT">220KV CVT</option>
+        <option value="220KV PT">220KV PT</option>
+        <option value="220KV CT">220KV CT</option>
+        <option value="220KV LA">220KV LA</option>
+        <option value="220KV CB">220KV CB</option>
+        <option value="315MVA">315MVA ICT</option>
+        <option value="500MVA">500MVA ICT</option>
+      </select>
+
+      <label for="material-name">Material Name</label>
+      <input type="text" id="material-name" placeholder="Enter material name">
+
+      <label for="material-stock">Stock Available Quantity</label>
+      <input type="number" id="material-stock" placeholder="Enter stock quantity">
+
+      <label for="material-dispatched">Used/Dispatched Quantity</label>
+      <input type="number" id="material-dispatched" placeholder="Enter dispatched quantity">
+
+      <label for="material-remarks">Add Remark</label>
+      <input type="text" id="material-remarks" placeholder="Enter remark">
+
+      <button id="add-btn">Add/Update Material</button>
+    </div>
+
+    <!-- Add this to your HTML -->
+    <div id="popup-message" class="popup" style="display: none;">
+        <div id="popup-content" class="popup-content">
+        <span id="popup-close" class="popup-close">&times;</span>
+        <p id="popup-text"></p>
+        </div>
+    </div>    
+
+    <!-- Edit Material Modal -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+        <span id="close-modal" class="close">&times;</span>
+        <h2>Edit Material</h2>
+        <label for="edit-material-type">Material Type</label>
+        <input type="text" id="edit-material-type" disabled>
+    
+        <label for="edit-material-name">Material Name</label>
+        <input type="text" id="edit-material-name" disabled>
+    
+        <label for="edit-material-dispatched">Dispatched Quantity</label>
+        <input type="number" id="edit-material-dispatched" placeholder="Enter dispatched quantity">
+    
+        <label for="edit-material-remarks">Remarks</label>
+        <input type="text" id="edit-material-remarks" placeholder="Enter remarks">
+    
+        <button id="save-edit-btn">Save Changes</button>
+        </div>
+    </div>    
+
+    <div class="stock-table">
+        <h2>Current Stock</h2>
+        <table id="stock-table">
+          <thead>
+            <tr>
+              <th>S.No</th>
+              <th>Material Name</th>
+              <th>Material Type</th>
+              <th>Available Stock</th>
+              <th>Used/Dispatched</th>
+              <th>Total Material</th>
+              <th>Remarks</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="stock-list">
+            <!-- Dynamic rows go here -->
+          </tbody>
+        </table>
+        <!-- Buttons for print and download -->
+        <div class="table-actions">
+          <button id="print-btn" class="action-btn">Print</button>
+        </div>
+      </div>      
+  </div>
+
+  <script>
+    const materialNameInput = document.getElementById('material-name');
+    const materialTypeInput = document.getElementById('material-type');
+    const materialStockInput = document.getElementById('material-stock');
+    const materialDispatchedInput = document.getElementById('material-dispatched');
+    const materialRemarksInput = document.getElementById('material-remarks');
+    const addButton = document.getElementById('add-btn');
+    const stockList = document.getElementById('stock-list');
+    const materialSummaryContainer = document.getElementById('material-summary-container');
+    const popupMessage = document.getElementById('popup-message');
+    const popupText = document.getElementById('popup-text');
+    const popupClose = document.getElementById('popup-close');
+    const lastUpdatedElement = document.getElementById('last-updated');
+    const editMaterialTypeInput = document.getElementById('edit-material-type');
+    const editMaterialNameInput = document.getElementById('edit-material-name');
+    const editMaterialDispatchedInput = document.getElementById('edit-material-dispatched');
+    const editMaterialRemarksInput = document.getElementById('edit-material-remarks');
+    const saveEditBtn = document.getElementById('save-edit-btn');
+    const editModal = document.getElementById('edit-modal');
+    const closeModalBtn = document.getElementById('close-modal');
+
+    let materials = [];
+    let editingIndex = -1;
+
+    // Utility function to format date as DD-MM-YYYY HH:mm:ss
+    function formatDate(date) {
+        const d = date.getDate().toString().padStart(2, '0');
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const y = date.getFullYear();
+        const h = date.getHours().toString().padStart(2, '0');
+        const min = date.getMinutes().toString().padStart(2, '0');
+        const s = date.getSeconds().toString().padStart(2, '0');
+        return `${d}-${m}-${y} ${h}:${min}:${s}`;
+    }
+
+    // Function to update the last updated date and time
+    function updateLastUpdated(action) {
+        const now = new Date();
+        const formattedDate = formatDate(now);
+        const updateMessage = `Last Updated: ${formattedDate} (${action})`;
+        lastUpdatedElement.textContent = updateMessage;
+    }
+
+    // Function to load the last updated date and time from localStorage
+    async function loadLastUpdated() {
+        try {
+            const response = await fetch('http://localhost:8000/api/materials');
+            if (response.ok) {
+                const materials = await response.json();
+                const latestMaterial = materials.reduce((latest, current) => {
+                    return new Date(current.lastUpdated) > new Date(latest.lastUpdated) ? current : latest;
+                });
+
+                const formattedDate = formatDate(new Date(latestMaterial.lastUpdated));
+                lastUpdatedElement.textContent = `Last Updated: ${formattedDate} (From MongoDB)`;
+
+                // Store the latest timestamp in localStorage
+                localStorage.setItem('lastUpdated', formattedDate);
+            } else {
+                alert("Failed to load materials");
+            }
+        } catch (error) {
+            console.error("Error fetching materials:", error);
+            alert("Failed to load last updated data.");
+        }
+    }
+
+    // Render the material stock and summary
+    function renderStock(filteredMaterials = materials) {
+        stockList.innerHTML = ''; // Clear existing stock list
+
+        filteredMaterials.forEach((material, index) => {
+            const { name, type, stock, dispatched, remarks } = material;
+            const totalMaterial = stock + dispatched; // Calculate total material
+            const displayRemarks = remarks.length === 0 || remarks[0].trim() === "" ? ["Nil"] : remarks;
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${name}</td>
+                <td>${type}</td>
+                <td>${stock}</td>
+                <td>${dispatched}</td>
+                <td>${totalMaterial}</td>
+                <td>
+                    <ul class="remarks-list">
+                        ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                </td>
+                <td>
+                    <button class="edit-btn" onclick="editMaterial(${index})">Edit</button>
+                    <button class="delete-btn" onclick="deleteMaterial(${index})">Delete</button>
+                </td>
+            `;
+            stockList.appendChild(row);
+        });
+
+    }
+
+    // Helper function to create a material row
+    function createMaterialRow(material, index) {
+        const { name, type, stock, dispatched, remarks } = material;
+        const totalMaterial = stock + dispatched;
+        const displayRemarks = remarks.length === 0 || remarks[0].trim() === "" ? ["Nil"] : remarks;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>${name}</td>
+            <td>${type}</td>
+            <td>${stock}</td>
+            <td>${dispatched}</td>
+            <td>${totalMaterial}</td>
+            <td>
+                <ul class="remarks-list">
+                    ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
+                </ul>
+            </td>
+            <td>
+                <button class="edit-btn" onclick="editMaterial(${index})">Edit</button>
+                <button class="delete-btn" onclick="deleteMaterial(${index})">Delete</button>
+            </td>
+        `;
+        return row;
+    }
+
+    // Render the summary dashboard
+    function renderDashboard(summaryMap) {
+        materialSummaryContainer.innerHTML = ''; // Clear existing summary content
+        let serialNumber = 1; // To keep track of serial numbers for rows
+
+        for (const type in summaryMap) {
+            const { totalStock, totalDispatched, totalMaterial, materials } = summaryMap[type];
+
+            const summaryRow = document.createElement('tr');
+            summaryRow.innerHTML = `
+                <td>${serialNumber++}</td>
+                <td>${type}</td>
+                <td>${totalStock}</td>
+                <td>${totalDispatched}</td>
+                <td>${totalMaterial}</td>
+                <td>
+                    <ul class="remarks-list">
+                        ${materials.map(material => {
+                            const displayRemarks = material.remarks.length === 0 || material.remarks[0].trim() === "" ? ["Nil"] : material.remarks;
+                            return ` 
+                                <li>
+                                    ${material.name}: Stock - ${material.stock}, Dispatched - ${material.dispatched}, Total - ${material.stock + material.dispatched}
+                                    <ul class="remarks-list">
+                                        ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
+                                    </ul>
+                                </li>
+                            `;
+                        }).join('')}
+                    </ul>
+                </td>
+            `;
+            materialSummaryContainer.appendChild(summaryRow); // Append summary row to the dashboard table
+        }
+    }
+
+    // Function to fetch materials from the server
+    async function fetchMaterials() {
+        try {
+            const response = await fetch('http://localhost:8000/api/materials');
+            if (response.ok) {
+                materials = await response.json(); // Store fetched materials in the materials array
+                renderStock(); // Render materials stock
+                renderDashboard(calculateSummary(materials)); // Calculate and render dashboard summary
+            } else {
+                alert("Failed to load materials");
+            }
+        } catch (error) {
+            console.error("Error fetching materials:", error);
+            alert("Failed to load materials");
+        }
+    }
+
+    // Calculate summary data for dashboard
+    function calculateSummary(materials) {
+        const summaryMap = {};
+
+        materials.forEach((material) => {
+            const { type, stock, dispatched, remarks } = material;
+            const totalMaterial = stock + dispatched;
+
+            if (!summaryMap[type]) {
+                summaryMap[type] = { totalStock: 0, totalDispatched: 0, totalMaterial: 0, materials: [] };
+            }
+
+            summaryMap[type].totalStock += stock;
+            summaryMap[type].totalDispatched += dispatched;
+            summaryMap[type].totalMaterial += totalMaterial;
+            summaryMap[type].materials.push(material);
+        });
+
+        return summaryMap;
+    }
+
+    // Add or update material
+    async function addOrUpdateMaterial() {
+        const material = {
+            name: materialNameInput.value.trim(),
+            type: materialTypeInput.value,
+            stock: parseInt(materialStockInput.value, 10) || 0,
+            dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
+            remarks: materialRemarksInput.value.trim() ? [materialRemarksInput.value.trim()] : [],
+            lastUpdated: new Date().toISOString() // Set current timestamp
+        };
+
+        const endpoint = editingIndex === -1 ? "/api/materials" : `/api/materials/${materials[editingIndex]?._id}`;
+        const method = editingIndex === -1 ? "POST" : "PUT";
+
+        try {
+            const response = await fetch(`http://localhost:8000${endpoint}`, {
+                method: method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(material),
+            });
+
+            if (response.ok) {
+                const updatedMaterial = await response.json();
+                showMessage(editingIndex === -1 ? "Material added successfully!" : "Material updated successfully!", "success");
+
+                fetchMaterials(); // Refresh the list
+
+                // Update last updated timestamp in localStorage
+                const formattedDate = formatDate(new Date(material.lastUpdated));
+                localStorage.setItem('lastUpdated', formattedDate);
+                updateLastUpdated('Material added/updated');
+
+                clearForm(); // Clear form after success
+
+                // Immediately update the dashboard after adding or updating the material
+                renderDashboard(calculateSummary(materials));  // Update the summary with the latest data
+            } else {
+                const errorData = await response.json();
+                alert(`Failed to add/update material: ${errorData.message}`);
+            }
+        } catch (error) {
+            console.error("Error during material add/update:", error);
+            alert("An error occurred while adding/updating the material.");
+        }
+    }
+
+    // Delete material
+    async function deleteMaterial(index) {
+        const id = materials[index]._id;
+        const response = await fetch(`http://localhost:8000/api/materials/${id}`, { method: "DELETE" });
+        if (response.ok) {
+            showMessage("Material deleted successfully!", "delete");
+            fetchMaterials(); // Refresh the list
+
+            // Update last updated timestamp in localStorage
+            const now = new Date();
+            const formattedDate = formatDate(now);
+            localStorage.setItem('lastUpdated', formattedDate);
+            updateLastUpdated('Material deleted');
+        } else {
+            alert("Failed to delete material");
+        }
+    }
+
+    // Function to show message in popup
+    function showMessage(message, type) {
+        popupText.textContent = message;
+        popupText.className = type; // Add success or delete class for different styles
+        popupMessage.style.display = "flex"; // Show the popup
+
+        // Close the popup after 3 seconds
+        setTimeout(() => {
+            popupMessage.style.display = "none";
+        }, 1500);
+    }
+
+    // Clear form input fields
+    function clearForm() {
+        materialNameInput.value = '';
+        materialTypeInput.value = '';
+        materialStockInput.value = '';
+        materialDispatchedInput.value = '';
+        materialRemarksInput.value = '';
+        editingIndex = -1;
+    }
+
+    // Edit material
+    function editMaterial(index) {
+        const material = materials[index];
+        editingIndex = index;
+
+        // Fill the form with existing material data
+        editMaterialTypeInput.value = material.type;
+        editMaterialNameInput.value = material.name;
+        editMaterialDispatchedInput.value = material.dispatched;
+        editMaterialRemarksInput.value = material.remarks.join(", ");
+
+        editModal.style.display = "block"; // Show the modal
+
+        // Handle saving the edited material
+        saveEditBtn.onclick = async function() {
+            const dispatchedQuantity = parseInt(editMaterialDispatchedInput.value, 10);
+            const remarks = editMaterialRemarksInput.value.trim();
+
+            if (dispatchedQuantity <= 0) {
+                alert("Please enter a valid dispatched quantity.");
+                return;
+            }
+
+            if (material.stock >= dispatchedQuantity) {
+                material.stock -= dispatchedQuantity;
+                material.dispatched += dispatchedQuantity;
+
+                if (remarks) {
+                    material.remarks.push(remarks);
+                }
+
+                const updatedMaterial = {
+                    name: material.name,
+                    type: material.type,
+                    stock: material.stock,
+                    dispatched: material.dispatched,
+                    remarks: material.remarks,
+                };
+
+                try {
+                    const response = await fetch(`http://localhost:8000/api/materials/${material._id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(updatedMaterial),
+                    });
+
+                    if (response.ok) {
+                        const updatedData = await response.json();
+                        materials[index] = updatedData;
+                        renderStock();  // Renders the updated stock view
+
+                        // Immediately update the dashboard after editing
+                        renderDashboard(calculateSummary(materials));  // Update the summary
+
+                        updateLastUpdated('Material Updated');
+                        showMessage("Material updated successfully!", "success");
+                        clearForm();
+                        editModal.style.display = "none";
+                    } else {
+                        alert("Failed to update material");
+                    }
+                } catch (error) {
+                    console.error("Error updating material:", error);
+                    alert("Error updating material. Please try again.");
+                }
+            } else {
+                alert("Insufficient stock available.");
+            }
+        };
+    }
+
+    // Function to download the summary as Excel
+    function downloadExcel() {
+        const rows = [];
+        const headers = ["S.No", "Material Type", "Total Available Stock", "Total Used/Dispatched", "Total Material", "Details"];
+        rows.push(headers); // Add headers to the first row
+
+        let serialNumber = 1;
+        const materialRows = document.querySelectorAll('#material-summary-container tr');
+        materialRows.forEach(row => {
+            const cols = row.querySelectorAll('td');
+            const rowData = [
+                serialNumber++,
+                cols[1].textContent,
+                cols[2].textContent,
+                cols[3].textContent,
+                cols[4].textContent,
+                cols[5].textContent
+            ];
+            rows.push(rowData); // Add row data
+        });
+
+        const ws = XLSX.utils.aoa_to_sheet(rows); // Convert rows to Excel sheet
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Material Summary");
+
+        // Download the Excel file
+        XLSX.writeFile(wb, "Material_Inventory_Summary.xlsx");
+    }
+
+    // Function to download the summary as PDF
+    function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape'); // Set the orientation to landscape
+        const pageWidth = doc.internal.pageSize.getWidth(); // Get page width in landscape
+        let y = 10;
+
+        // Title: "TRANSMISSION CORPORATION OF TELANGANA LIMITED"
+        doc.setFontSize(22);
+        doc.setFont("Arial", "bold");
+        const titleText1 = "TRANSMISSION CORPORATION OF TELANGANA LIMITED";
+        const titleWidth1 = doc.getStringUnitWidth(titleText1) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+        const titleX1 = (pageWidth - titleWidth1) / 2; // Calculate horizontal center
+        doc.text(titleText1, titleX1, y);
+        y += 20; // Increase space after the first title
+
+        // Add underline below the title
+        doc.setLineWidth(0.5); // Set the line width for the underline
+        doc.line(titleX1, y - 10, titleX1 + titleWidth1, y - 10); // Draw the line for the underline
+
+        // Title: "Material Inventory Summary"
+        doc.setFontSize(18);
+        doc.setFont("Arial", "normal");
+        const titleText2 = "Material Inventory Summary";
+        const titleWidth2 = doc.getStringUnitWidth(titleText2) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+        const titleX2 = (pageWidth - titleWidth2) / 2; // Calculate horizontal center
+        doc.text(titleText2, titleX2, y);
+
+        // Remove space between title and table headers by setting y directly for table headers
+        y += 5; // Slight space between title and header
+
+        // Define column widths for the 5 columns (excluding "Details")
+        const columnWidths = [20, 50, 50, 60, 60]; // Adjust widths to fit the page
+
+        // Headers (without the 'Details' column)
+        const headers = ["S.No", "Material Type", "Total Available Stock", "Total Used/Dispatched", "Total Material"];
+        const headerStyles = {
+            font: "Arial",
+            size: 12, // Decreased font size for headers
+            bold: true,
+            color: [255, 255, 255], // White text color
+            backgroundColor: [50, 50, 150] // Blue background color
+        };
+
+        // Set table header styles
+        doc.setFont(headerStyles.font, 'bold');
+        doc.setFontSize(headerStyles.size); // Apply decreased font size
+        doc.setTextColor(headerStyles.color[0], headerStyles.color[1], headerStyles.color[2]);
+        doc.setFillColor(headerStyles.backgroundColor[0], headerStyles.backgroundColor[1], headerStyles.backgroundColor[2]);
+
+        // Draw the header at the top
+        doc.rect(14, y, columnWidths[0] + columnWidths[1] + columnWidths[2] + columnWidths[3] + columnWidths[4], 12, 'F'); // Draw background for header
+        doc.text(headers[0], 16, y + 8);
+        doc.text(headers[1], 34, y + 8);
+        doc.text(headers[2], 84, y + 8);
+        doc.text(headers[3], 144, y + 8);
+        doc.text(headers[4], 204, y + 8);
+        y += 14; // Increase space after headers
+
+        // Set row styles
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0); // Black text
+        const materialRows = document.querySelectorAll('#material-summary-container tr');
+        let serialNumber = 1;
+
+        // Loop through rows and print data with automatic text wrapping
+        materialRows.forEach(row => {
+            const cols = row.querySelectorAll('td');
+            const rowData = [
+                serialNumber++,
+                cols[1].textContent,
+                cols[2].textContent,
+                cols[3].textContent,
+                cols[4].textContent
+            ];
+
+            // Add data to PDF with automatic text wrapping
+            doc.text(rowData[0].toString(), 14, y + 7);
+            doc.text(rowData[1], 34, y + 7, { maxWidth: columnWidths[1] }); // Wrap text in column 2
+            doc.text(rowData[2], 84, y + 7, { maxWidth: columnWidths[2] }); // Wrap text in column 3
+            doc.text(rowData[3], 144, y + 7, { maxWidth: columnWidths[3] }); // Wrap text in column 4
+            doc.text(rowData[4], 204, y + 7, { maxWidth: columnWidths[4] }); // Wrap text in column 5
+
+            y += 12; // Add space between rows
+        });
+
+        // Save the PDF
+        doc.save("Material_Inventory_Summary.pdf");
+    }
+
+    // Event listeners for download buttons
+    document.getElementById('download-excel-btn').addEventListener('click', downloadExcel);
+    document.getElementById('download-pdf-btn').addEventListener('click', downloadPDF);
+
+    document.addEventListener("DOMContentLoaded", function() {
+
+    // Print Button Functionality
+    document.getElementById("print-btn").addEventListener("click", function() {
+        const stockTable = document.getElementById("stock-table"); // table has the ID "stock-table"
+        if (stockTable) {
+            // Hide the 'Actions' column (assuming it's the last column)
+            const rows = stockTable.querySelectorAll("tr");
+            rows.forEach(row => {
+            const actionsCell = row.querySelector("td:last-child, th:last-child"); // targeting the last column (Actions)
+            if (actionsCell) {
+                actionsCell.style.display = "none"; // Hide the cell
+            }
+            });
+
+            // Create a title element with reduced font size and margin for spacing
+            const title = `<h1 style="text-align: center; font-size: 22px; margin-bottom: 30px;">TRANSMISSION CORPORATION OF TELANGANA LIMITED</h1>`;
+            
+            // Combine the title and the table HTML
+            const printContents = title + stockTable.outerHTML;
+            
+            // Save the original contents of the page
+            const originalContents = document.body.innerHTML;
+            
+            // Replace the body with the title and the table for printing
+            document.body.innerHTML = printContents;
+            
+            // Print the page
+            window.print();
+            
+            // Restore the original contents of the page
+            document.body.innerHTML = originalContents;
+            
+            // After printing, make the "Actions" column visible again
+            rows.forEach(row => {
+            const actionsCell = row.querySelector("td:last-child, th:last-child");
+            if (actionsCell) {
+                actionsCell.style.display = ""; // Restore the cell visibility
+            }
+            });
+        } else {
+            console.error("Table not found");
+        }
+    });
+
+    document.getElementById("download-excel-btn").addEventListener("click", function() {
+        const stockTable = document.getElementById("stock-table");
+        if (stockTable) {
+            let csv = [];
+            
+            // Get the headers
+            const headers = stockTable.querySelectorAll("th");
+            let headerRow = [];
+            headers.forEach((header, index) => {
+                // Exclude the last header (assuming it's the "Action" column)
+                if (index < headers.length - 1) {
+                    headerRow.push(header.innerText);
+                }
+            });
+            csv.push(headerRow.join(","));
+            
+            // Get the table rows
+            const rows = stockTable.querySelectorAll("tbody tr");
+            rows.forEach(row => {
+                let rowData = [];
+                const cells = row.querySelectorAll("td");
+                cells.forEach((cell, index) => {
+                    // Exclude the last cell (assuming it's the "Action" column)
+                    if (index < cells.length - 1) {
+                        rowData.push(cell.innerText);
+                    }
+                });
+                if (rowData.length > 0) {
+                    csv.push(rowData.join(","));
+                }
+            });
+            
+            // Convert the CSV to Blob
+            const csvBlob = new Blob([csv.join("\n")], { type: "text/csv" });
+            const downloadLink = document.createElement("a");
+            downloadLink.href = URL.createObjectURL(csvBlob);
+            downloadLink.download = "stock_data.csv"; // Filename
+            downloadLink.click();
+        } else {
+            console.error("Table not found");
+        }
+    });
+    });
+
+    // Search functionality
+    document.getElementById('search-bar').addEventListener('input', function () {
+        const query = this.value.toLowerCase();  // Get search query in lowercase
+
+        // Filter materials based on the search query
+        const filteredMaterials = materials.filter(
+            material => material.name.toLowerCase().includes(query) ||   // Match material name
+            material.type.toLowerCase().includes(query) ||   // Match material type
+            material.remarks.some(remark => remark.toLowerCase().includes(query))  // Match remarks
+        );
+
+        // Render the stock table with filtered materials
+        renderStock(filteredMaterials);
+
+        // Recalculate and render the dashboard summary with filtered materials
+        renderDashboard(calculateSummary(filteredMaterials));
+    });
+
+    // Event listeners
+    addButton.addEventListener('click', addOrUpdateMaterial);
+    closeModalBtn.addEventListener('click', () => { editModal.style.display = 'none'; });
+    popupClose.addEventListener('click', () => { popupMessage.style.display = 'none'; });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        loadLastUpdated();
+        fetchMaterials(); // Load materials on page load
+    });
+
+    (async function checkLoginStatus() {
+        try {
+            const response = await fetch("https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/check-login", { 
+            method: "GET",
+            credentials: "include" // If using cookies for authentication
+            });
+
+            if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (!result.loggedIn) {
+            window.location.href = "/login.html"; // Redirect if not logged in
+            }
+        } catch (error) {
+            console.error("Login check failed:", error);
+        }
+    })();
+
+
+    document.getElementById('logout-btn').addEventListener('click', async function() {
+        // Send request to backend to destroy session
+        const response = await fetch("/logout", { method: "POST" });
+        const result = await response.json();
+
+        if (result.success) {
+            // Clear session storage, cookies, and cache
+            sessionStorage.clear();
+            localStorage.clear();
+            sessionStorage.setItem('logout', 'true');
+            document.cookie.split(';').forEach(function(c) {
+                document.cookie = c.trim().split('=')[0] + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/';
+            });
+
+            // Redirect to login page after clearing session and cookies
+            window.location.href = '/login.html'; // Redirect to login page
+        } else {
+            console.error('Logout failed', result.message);
+        }
+    });
+
+    // Prevent back navigation
+    if (window.location.pathname === '/login.html') {
+        history.pushState(null, null, location.href);
+        window.onpopstate = function() {
+            history.pushState(null, null, location.href); // Keep the user on the login page
+        };
+    }
+
+</script>
+</body>
+</html>
