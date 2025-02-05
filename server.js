@@ -52,7 +52,7 @@ app.post('/login', async (req, res) => {
 
   if (user && await bcrypt.compare(password, user.password)) {
     req.session.user = username;
-    res.json({ success: true, redirect: '/material_index.html' });
+    res.json({ success: true, data: { redirect: '/material_index.html' } });
   } else {
     res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
