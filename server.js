@@ -43,7 +43,7 @@ const materialSchema = new mongoose.Schema({
 const Material = mongoose.model('Material', materialSchema);
 
 const users = [
-  { username: 'admin', password: bcrypt.hashSync('password123', 10) }
+  { username: 'Shankarpally400kv', password: bcrypt.hashSync('Shankarpally@987', 16) }
 ];
 
 app.post('/login', async (req, res) => {
