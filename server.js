@@ -28,13 +28,18 @@ app.use('/api/', limiter);
 
 // Session setup
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'mysecret',
+  secret: process.env.SESSION_SECRET || 'chantichitti2255@',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI, // Your MongoDB connection string
+    collectionName: 'sessions', // (Optional) Store sessions in a specific collection
+    ttl: 14 * 24 * 60 * 60 // (Optional) Sessions expire in 14 days
+  }),
   cookie: {
     secure: process.env.NODE_ENV === 'production', // Set to true in production
     httpOnly: true,
-    sameSite: 'strict' // Add this to improve security
+    sameSite: 'strict'
   }
 }));
 
