@@ -292,94 +292,100 @@
 
     // Render the summary dashboard
     function renderDashboard(summaryMap) {
-    materialSummaryContainer.innerHTML = ''; // Clear existing summary content
-    let serialNumber = 1;
+        materialSummaryContainer.innerHTML = ''; // Clear existing summary content
+        let serialNumber = 1;
 
-    if (Object.keys(summaryMap).length === 0) {
-        materialSummaryContainer.innerHTML = '<tr><td colspan="7">No materials available</td></tr>';
-        return;
-    }
-
-    for (const type in summaryMap) {
-        const { totalStock, totalDispatched, totalMaterial, materials } = summaryMap[type];
-
-        const summaryRow = document.createElement('tr');
-        summaryRow.innerHTML = `
-            <td>${serialNumber++}</td>
-            <td>${type}</td>
-            <td>${totalStock}</td>
-            <td>${totalDispatched}</td>
-            <td>${totalMaterial}</td>
-            <td>
-                <ul class="remarks-list">
-                    ${materials.map(material => {
-                        const displayRemarks = Array.isArray(material.remarks) && material.remarks.length > 0
-                            ? material.remarks.map(r => (r.text ? r.text.trim() : "Nil")) 
-                            : ["Nil"];
-
-                        return ` 
-                            <li>
-                                ${material.name}: Stock - ${material.stock}, Dispatched - ${material.dispatched}, Total - ${material.stock + material.dispatched}
-                                <ul class="remarks-list">
-                                    ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
-                                </ul>
-                                <div class="last-updated">
-                                    <strong>Last Updated:</strong> ${material.lastUpdatedFormatted}
-                                </div>
-                            </li>
-                        `;
-                    }).join('')}
-                </ul>
-            </td>
-        `;
-        materialSummaryContainer.appendChild(summaryRow);
-    }
-}
-
-
-
-function updateSummaryMap(summaryMap, updatedMaterial) {
-    const { type, stock, dispatched, remarks, lastUpdated } = updatedMaterial;
-
-    if (summaryMap[type]) {
-        const materialIndex = summaryMap[type].materials.findIndex(m => m._id === updatedMaterial._id);
-        
-        if (materialIndex !== -1) {
-            // ✅ Update material properties including `lastUpdated`
-            summaryMap[type].materials[materialIndex].stock = stock;
-            summaryMap[type].materials[materialIndex].dispatched = dispatched;
-            summaryMap[type].materials[materialIndex].remarks = remarks;
-            summaryMap[type].materials[materialIndex].lastUpdated = lastUpdated;
+        if (Object.keys(summaryMap).length === 0) {
+            materialSummaryContainer.innerHTML = '<tr><td colspan="6">No materials available</td></tr>';
+            return;
         }
 
-        // ✅ Recalculate totals
-        summaryMap[type].totalStock = summaryMap[type].materials.reduce((sum, m) => sum + m.stock, 0);
-        summaryMap[type].totalDispatched = summaryMap[type].materials.reduce((sum, m) => sum + m.dispatched, 0);
-        summaryMap[type].totalMaterial = summaryMap[type].totalStock + summaryMap[type].totalDispatched;
-    }
-}
+        for (const type in summaryMap) {
+            const { totalStock, totalDispatched, totalMaterial, materials } = summaryMap[type];
 
+            const summaryRow = document.createElement('tr');
+            summaryRow.innerHTML = `
+                <td>${serialNumber++}</td>
+                <td>${type}</td>
+                <td>${totalStock}</td>
+                <td>${totalDispatched}</td>
+                <td>${totalMaterial}</td>
+                <td>
+                    <ul class="remarks-list">
+                        ${materials.map(material => {
+                            // ✅ Ensure remarks are properly extracted
+                            const displayRemarks = Array.isArray(material.remarks) && material.remarks.length > 0
+                                ? material.remarks.map(r => (r.text ? r.text.trim() : "Nil")) // Extract `text` from object
+                                : ["Nil"];
+
+                            return ` 
+                                <li>
+                                    ${material.name}: Stock - ${material.stock}, Dispatched - ${material.dispatched}, Total - ${material.stock + material.dispatched}
+                                    <ul class="remarks-list">
+                                        ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
+                                    </ul>
+                                </li>
+                            `;
+                        }).join('')}
+                    </ul>
+                </td>
+            `;
+            materialSummaryContainer.appendChild(summaryRow);
+        }
+    }
+
+    function updateSummaryMap(summaryMap, updatedMaterial) {
+        const { type, stock, dispatched, remarks } = updatedMaterial;
+
+        if (summaryMap[type]) {
+            // Find the material inside the type's material list
+            const materialIndex = summaryMap[type].materials.findIndex(m => m._id === updatedMaterial._id);
+            
+            if (materialIndex !== -1) {
+                // Update the material details
+                summaryMap[type].materials[materialIndex].stock = stock;
+                summaryMap[type].materials[materialIndex].dispatched = dispatched;
+                summaryMap[type].materials[materialIndex].remarks = remarks;
+            }
+
+            // Recalculate totals
+            summaryMap[type].totalStock = summaryMap[type].materials.reduce((sum, m) => sum + m.stock, 0);
+            summaryMap[type].totalDispatched = summaryMap[type].materials.reduce((sum, m) => sum + m.dispatched, 0);
+            summaryMap[type].totalMaterial = summaryMap[type].totalStock + summaryMap[type].totalDispatched;
+        }
+    }
 
     // Function to fetch materials from the server
     async function fetchMaterials() {
-    try {
-        const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials', {
-            method: "GET",
-            headers: { "Cache-Control": "no-cache" } // Prevent cached responses
-        });
+        try {
+            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
+            if (!response.ok) throw new Error("Failed to fetch materials.");
 
-        if (!response.ok) throw new Error("Failed to fetch materials.");
+            materials = await response.json();
+            
+            console.log("Fetched Materials:", materials);  // ✅ Debugging line
 
-        materials = await response.json();
-        console.log("Fetched Updated Materials:", materials);  // ✅ Debugging line
+            materials.forEach(material => {
+                material.remarks = Array.isArray(material.remarks) 
+                    ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
+                    : [];
 
-        renderStock();
-        renderDashboard(calculateSummary(materials));
-    } catch (error) {
-        console.error("Error fetching materials:", error);
+                // ✅ Ensure addedDate is formatted correctly
+                material.addedDateFormatted = material.addedDate 
+                    ? formatDate(new Date(material.addedDate))
+                    : "Unknown";
+
+                material.lastUpdatedFormatted = material.lastUpdated 
+                    ? formatDate(new Date(material.lastUpdated))
+                    : "Unknown";
+            });
+
+            renderStock();
+            renderDashboard(calculateSummary(materials));
+        } catch (error) {
+            console.error("Error fetching materials:", error);
+        }
     }
-}
-
 
     // Calculate summary data for dashboard
     function calculateSummary(materials) {
@@ -403,51 +409,50 @@ function updateSummaryMap(summaryMap, updatedMaterial) {
     }
 
     async function addOrUpdateMaterial() {
-    const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null;
+        const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null;
 
-    const material = {
-        name: materialNameInput.value.trim(),
-        type: materialTypeInput.value,
-        stock: parseInt(materialStockInput.value, 10) || 0,
-        dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
-        remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim() }] : [],
-        addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(), // Preserve original addedDate
-        lastUpdated: new Date().toISOString() // ✅ Update lastUpdated timestamp
-    };
+        const material = {
+            name: materialNameInput.value.trim(),
+            type: materialTypeInput.value,
+            stock: parseInt(materialStockInput.value, 10) || 0,
+            dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
+            remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim() }] : [],
+            addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(), // Preserve original addedDate
+            lastUpdated: new Date().toISOString() // ✅ Update lastUpdated timestamp
+        };
 
-    const method = existingMaterial ? "PUT" : "POST";
-    const url = existingMaterial
-        ? `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${existingMaterial._id}`
-        : "https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials";
+        const method = existingMaterial ? "PUT" : "POST";
+        const url = existingMaterial
+            ? `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${existingMaterial._id}`
+            : "https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials";
 
-    try {
-        const response = await fetch(url, {
-            method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(material),
-        });
+        try {
+            const response = await fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(material),
+            });
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(`Failed to add/update material: ${errorData.message}`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`Failed to add/update material: ${errorData.message}`);
+            }
+
+            console.log("Material successfully added/updated.");
+            
+            showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully"); // ✅ Success message
+
+            await fetchMaterials(); // ✅ Ensure materials array updates before dashboard refresh
+            
+            renderDashboard(calculateSummary(materials)); // ✅ Refresh dashboard with updated materials
+
+            clearForm(); // ✅ Clear form fields
+
+        } catch (error) {
+            console.error("Error during material add/update:", error);
+            alert("An error occurred while adding/updating the material.");
         }
-
-        console.log("Material successfully added/updated.");
-        
-        showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully"); // ✅ Success message
-
-        await fetchMaterials(); // ✅ Ensure materials array updates before dashboard refresh
-        
-        renderDashboard(calculateSummary(materials)); // ✅ Refresh dashboard with updated materials
-
-        clearForm(); // ✅ Clear form fields
-
-    } catch (error) {
-        console.error("Error during material add/update:", error);
-        alert("An error occurred while adding/updating the material.");
     }
-}
-
 
     // ✅ Function to show success popup
     function showSuccessPopup(message) {
