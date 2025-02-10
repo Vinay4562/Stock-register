@@ -548,7 +548,7 @@
                 });
 
                 try {
-                    const response = await fetch(`http://localhost:5000/api/materials/${materials[editingIndex]._id}`, {
+                    const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${materials[editingIndex]._id}`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(material),
