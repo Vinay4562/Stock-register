@@ -352,12 +352,16 @@
     // Function to fetch materials from the server
     async function fetchMaterials() {
         try {
-            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
+            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials', {
+                method: "GET",
+                headers: { "Cache-Control": "no-cache" }  // ✅ Prevents browser caching
+            });
+
             if (!response.ok) throw new Error("Failed to fetch materials.");
 
             materials = await response.json();
-            
-            console.log("Fetched Materials:", materials);  // ✅ Debugging line
+
+            console.log("Fetched Materials:", materials);  // ✅ Debugging: Check fetched data
 
             materials.forEach(material => {
                 material.remarks = Array.isArray(material.remarks) 
@@ -376,9 +380,32 @@
 
             renderStock();
             renderDashboard(calculateSummary(materials));
+            
+            // ✅ Ensure last updated date is reflected in UI
+            updateLastUpdatedDisplay();
+
         } catch (error) {
             console.error("Error fetching materials:", error);
         }
+    }
+
+    function updateLastUpdatedDisplay() {
+        if (materials.length > 0) {
+            const latestMaterial = materials.reduce((latest, current) => 
+                new Date(latest.lastUpdated) > new Date(current.lastUpdated) ? latest : current
+            );
+
+            document.getElementById("lastUpdatedDisplay").innerText = 
+                `Last Updated: ${formatDate(latestMaterial.lastUpdated)}`;
+        } else {
+            document.getElementById("lastUpdatedDisplay").innerText = "No materials available.";
+        }
+    }
+
+    // ✅ Function to format the date correctly
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}`;
     }
 
     // Calculate summary data for dashboard
