@@ -846,21 +846,14 @@
     });
 
     // Search functionality
-    document.getElementById('search-bar').addEventListener('input', function () {
-        const query = this.value.toLowerCase();  // Get search query in lowercase
-
-        // Filter materials based on the search query
-        const filteredMaterials = materials.filter(
-            material => material.name.toLowerCase().includes(query) ||   // Match material name
-            material.type.toLowerCase().includes(query) ||   // Match material type
-            material.remarks.some(remark => remark.toLowerCase().includes(query))  // Match remarks
+    document.getElementById('searchInput').addEventListener('input', function () {
+        const query = this.value.toLowerCase();
+        const filteredMaterials = materials.filter(material => 
+            material.name.toLowerCase().includes(query) || 
+            material.type.toLowerCase().includes(query) || 
+            material.remarks.some(remark => remark.toLowerCase().includes(query))
         );
-
-        // Render the stock table with filtered materials
         renderStock(filteredMaterials);
-
-        // Recalculate and render the dashboard summary with filtered materials
-        renderDashboard(calculateSummary(filteredMaterials));
     });
 
     // Event listeners
