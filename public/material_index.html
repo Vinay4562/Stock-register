@@ -357,9 +357,11 @@
 
         materials = await response.json();
 
-        // ✅ Ensure correct remarks format
+        // ✅ Ensure remarks is an array of objects
         materials.forEach(material => {
-            material.remarks = Array.isArray(material.remarks) ? material.remarks.map(r => (typeof r === "string" ? r.trim() : "Nil")) : ["Nil"];
+            material.remarks = Array.isArray(material.remarks) 
+                ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
+                : [];
             material.lastUpdatedFormatted = formatDate(new Date(material.lastUpdated));
         });
 
@@ -400,7 +402,9 @@
         type: materialTypeInput.value,
         stock: parseInt(materialStockInput.value, 10) || 0,
         dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
-        remarks: materialRemarksInput.value.trim() ? [materialRemarksInput.value.trim()] : [], // Always an array
+        remarks: materialRemarksInput.value.trim()
+            ? [{ text: materialRemarksInput.value.trim() }]  // ✅ Sending remarks as an array of objects
+            : [], // ✅ If empty, send an empty array
     };
 
     try {
