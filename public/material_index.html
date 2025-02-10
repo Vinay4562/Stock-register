@@ -536,7 +536,11 @@
         editMaterialNameInput.value = material.name;
         editMaterialTypeInput.value = material.type;
         editMaterialDispatchedInput.value = ""; // Clear previous dispatched input
-        editMaterialRemarksInput.value = material.remarks.join(", "); // Join remarks if multiple exist
+
+        // ✅ Properly extract text from remarks
+        editMaterialRemarksInput.value = material.remarks.length > 0 
+            ? material.remarks.map(r => (typeof r === "object" && r.text ? r.text : r)).join(", ") 
+            : ""; // Handle empty remarks properly
 
         editModal.style.display = "block"; // Show modal
     }
