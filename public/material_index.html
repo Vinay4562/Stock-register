@@ -521,6 +521,17 @@
     }
 }
 
+    // Function to show message in popup
+    function showMessage(message, type) {
+        popupText.textContent = message;
+        popupText.className = type; // Add success or delete class for different styles
+        popupMessage.style.display = "flex"; // Show the popup
+
+        // Close the popup after 3 seconds
+        setTimeout(() => {
+            popupMessage.style.display = "none";
+        }, 1500);
+    }
 
     // Edit material
     function editMaterial(index) {
