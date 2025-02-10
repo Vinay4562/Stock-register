@@ -169,22 +169,16 @@
     let editingIndex = -1;
 
     // Utility function to format date as DD-MM-YYYY HH:mm:ss
-    function formatDate(date) {
-    if (!date) return "Unknown"; // ✅ Handle null/undefined
-
-    const parsedDate = new Date(date); // ✅ Convert string to Date
-    if (isNaN(parsedDate)) return "Unknown"; // ✅ Handle invalid date
-
-    const d = parsedDate.getDate().toString().padStart(2, '0');
-    const m = (parsedDate.getMonth() + 1).toString().padStart(2, '0');
-    const y = parsedDate.getFullYear();
-    const h = parsedDate.getHours().toString().padStart(2, '0');
-    const min = parsedDate.getMinutes().toString().padStart(2, '0');
-    const s = parsedDate.getSeconds().toString().padStart(2, '0');
-
-    return `${d}-${m}-${y} ${h}:${min}:${s}`;
+    function formatDate(dateString) {
+    if (!dateString) return "Unknown";  // ✅ Handle null values
+    const date = new Date(dateString);
+    const d = date.getDate().toString().padStart(2, '0');
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const y = date.getFullYear();
+    const h = date.getHours().toString().padStart(2, '0');
+    const min = date.getMinutes().toString().padStart(2, '0');
+    return `${d}-${m}-${y} ${h}:${min}`;
 }
-
 
 
     // Function to update the last updated date and time
@@ -364,19 +358,25 @@
         if (!response.ok) throw new Error("Failed to fetch materials.");
 
         materials = await response.json();
+        
+        console.log("Fetched Materials:", materials);  // ✅ Debugging line
 
         materials.forEach(material => {
-            // ✅ Ensure remarks is an array of objects
             material.remarks = Array.isArray(material.remarks) 
                 ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
                 : [];
 
-            // ✅ Format both addedDate and lastUpdated
-            material.addedDateFormatted = formatDate(material.addedDate);
-            material.lastUpdatedFormatted = formatDate(material.lastUpdated);
+            // ✅ Ensure addedDate is formatted correctly
+            material.addedDateFormatted = material.addedDate 
+                ? formatDate(new Date(material.addedDate))
+                : "Unknown";
+
+            material.lastUpdatedFormatted = material.lastUpdated 
+                ? formatDate(new Date(material.lastUpdated))
+                : "Unknown";
         });
 
-        renderStock(); // Refresh table
+        renderStock();
         renderDashboard(calculateSummary(materials));
     } catch (error) {
         console.error("Error fetching materials:", error);
