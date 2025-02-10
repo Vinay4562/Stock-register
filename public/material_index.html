@@ -216,16 +216,39 @@
         stockList.innerHTML = ''; // Clear table before rendering
 
         filteredMaterials.forEach((material, index) => {
-            const { name, type, stock, dispatched, remarks, lastUpdatedFormatted } = material;
+            const { name, type, stock, dispatched, remarks, addedDate, lastUpdated, dispatchHistory } = material;
             const totalMaterial = stock + dispatched;
             const displayRemarks = remarks.length === 0 || remarks[0].trim() === "" ? ["Nil"] : remarks;
+
+            // Ensure addedDate is correctly formatted (keep original date)
+            let addedDateFormatted = "Unknown";
+            if (addedDate) {
+                addedDateFormatted = formatDate(new Date(addedDate)); // Format addedDate
+            }
+
+            // Ensure lastUpdated is correctly formatted
+            let lastUpdatedFormatted = "Unknown";
+            if (lastUpdated) {
+                lastUpdatedFormatted = formatDate(new Date(lastUpdated));  // Format lastUpdated
+            }
 
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${index + 1}</td>
                 <td>
-                    <small style="color: gray; font-size: 12px;">${lastUpdatedFormatted}</small><br>
+                    <small style="color: red; font-size: 12px;">Added: ${addedDateFormatted}</small>
+                    <br>
                     <strong>${name}</strong>
+                    <br>
+                    ${dispatchHistory && dispatchHistory.length > 0
+                        ? dispatchHistory.map(d => `
+                            <small style="color: blue; font-size: 12px;">
+                                Dispatched: ${d.quantity}No's, Date: ${formatDate(new Date(d.date))}, 
+                                Remarks: ${d.remarks ? d.remarks : "Nil"}
+                            </small><br>`
+                        ).join("")
+                        : ""
+                    }
                 </td>
                 <td>${type}</td>
                 <td>${stock}</td>
@@ -307,6 +330,27 @@
         }
     }
 
+    function updateSummaryMap(summaryMap, updatedMaterial) {
+        const { type, stock, dispatched, remarks } = updatedMaterial;
+
+        if (summaryMap[type]) {
+            // Find the material inside the type's material list
+            const materialIndex = summaryMap[type].materials.findIndex(m => m._id === updatedMaterial._id);
+            
+            if (materialIndex !== -1) {
+                // Update the material details
+                summaryMap[type].materials[materialIndex].stock = stock;
+                summaryMap[type].materials[materialIndex].dispatched = dispatched;
+                summaryMap[type].materials[materialIndex].remarks = remarks;
+            }
+
+            // Recalculate totals
+            summaryMap[type].totalStock = summaryMap[type].materials.reduce((sum, m) => sum + m.stock, 0);
+            summaryMap[type].totalDispatched = summaryMap[type].materials.reduce((sum, m) => sum + m.dispatched, 0);
+            summaryMap[type].totalMaterial = summaryMap[type].totalStock + summaryMap[type].totalDispatched;
+        }
+    }
+
     // Function to fetch materials from the server
     async function fetchMaterials() {
         try {
@@ -352,13 +396,16 @@
 
     // Add or update material
     async function addOrUpdateMaterial() {
+        const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null;
+
         const material = {
             name: materialNameInput.value.trim(),
             type: materialTypeInput.value,
             stock: parseInt(materialStockInput.value, 10) || 0,
             dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
             remarks: materialRemarksInput.value.trim() ? [materialRemarksInput.value.trim()] : [],
-            lastUpdated: new Date().toISOString() // Set current timestamp
+            addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(),  // Preserve addedDate
+            lastUpdated: new Date().toISOString() // Update lastUpdated timestamp
         };
 
         const endpoint = editingIndex === -1 ? "/api/materials" : `/api/materials/${materials[editingIndex]?._id}`;
@@ -376,11 +423,6 @@
                 showMessage(editingIndex === -1 ? "Material added successfully!" : "Material updated successfully!", "success");
 
                 fetchMaterials(); // Refresh the list
-
-                // Update last updated timestamp in localStorage
-                const formattedDate = formatDate(new Date(material.lastUpdated));
-                localStorage.setItem('lastUpdated', formattedDate);
-                updateLastUpdated('Material added/updated');
 
                 clearForm(); // Clear form after success
 
@@ -455,74 +497,101 @@
 
     // Edit material
     function editMaterial(index) {
-        const material = materials[index];
         editingIndex = index;
+        if (index < 0 || index >= materials.length) {
+            alert("Invalid material index.");
+            return;
+        }
 
-        // Fill the form with existing material data
-        editMaterialTypeInput.value = material.type;
+        const material = materials[index];
+
+        // Pre-fill modal form fields with material data
         editMaterialNameInput.value = material.name;
-        editMaterialDispatchedInput.value = material.dispatched;
-        editMaterialRemarksInput.value = material.remarks.join(", ");
+        editMaterialTypeInput.value = material.type;
+        editMaterialDispatchedInput.value = ""; // Clear previous dispatched input
+        editMaterialRemarksInput.value = material.remarks.join(", "); // Join remarks if multiple exist
 
-        editModal.style.display = "block"; // Show the modal
+        editModal.style.display = "block"; // Show modal
+    }
 
-        // Handle saving the edited material
-        saveEditBtn.onclick = async function() {
-            const dispatchedQuantity = parseInt(editMaterialDispatchedInput.value, 10);
-            const remarks = editMaterialRemarksInput.value.trim();
+    // Initialize summaryMap at the beginning
+    let summaryMap = {};  // Ensure this is declared before it's used
 
-            if (dispatchedQuantity <= 0) {
+    // Edit material function
+    saveEditBtn.addEventListener("click", async function () {
+        if (editingIndex !== -1) {
+            const dispatchedQty = parseInt(editMaterialDispatchedInput.value, 10);
+            if (isNaN(dispatchedQty) || dispatchedQty < 0) {
                 alert("Please enter a valid dispatched quantity.");
                 return;
             }
 
-            if (material.stock >= dispatchedQuantity) {
-                material.stock -= dispatchedQuantity;
-                material.dispatched += dispatchedQuantity;
+            const remarks = editMaterialRemarksInput.value.trim() ? [editMaterialRemarksInput.value.trim()] : ["Nil"];
+            const now = new Date();
+            const lastUpdatedFormatted = now.toISOString();
 
-                if (remarks) {
-                    material.remarks.push(remarks);
+            let material = materials[editingIndex];
+
+            if (material.stock >= dispatchedQty) {
+                material.stock -= dispatchedQty;
+                material.dispatched += dispatchedQty;
+                material.remarks.push(...remarks);
+                material.lastUpdatedFormatted = lastUpdatedFormatted;
+
+                if (!material.dispatchHistory) {
+                    material.dispatchHistory = [];
                 }
-
-                const updatedMaterial = {
-                    name: material.name,
-                    type: material.type,
-                    stock: material.stock,
-                    dispatched: material.dispatched,
-                    remarks: material.remarks,
-                };
+                material.dispatchHistory.push({
+                    quantity: dispatchedQty,
+                    date: lastUpdatedFormatted,
+                    remarks: remarks.join(", ")
+                });
 
                 try {
-                    const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${material._id}`, {
+                    const response = await fetch(`http://localhost:5000/api/materials/${materials[editingIndex]._id}`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(updatedMaterial),
+                        body: JSON.stringify(material),
                     });
 
-                    if (response.ok) {
-                        const updatedData = await response.json();
-                        materials[index] = updatedData;
-                        renderStock();  // Renders the updated stock view
+                    console.log('Server Response Status:', response.status);
 
-                        // Immediately update the dashboard after editing
-                        renderDashboard(calculateSummary(materials));  // Update the summary
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Failed to update: ${errorData.message || 'Unknown error'}`);
+                    }
 
-                        updateLastUpdated('Material Updated');
-                        showMessage("Material updated successfully!", "success");
-                        clearForm();
+                    const data = await response.json();
+                    console.log("Server Response:", data);
+
+                    if (data.success) {
+                        alert("Material updated successfully.");
+                        updateLastUpdated("Material Edited");
+
+                        // ✅ Immediately refresh materials list and dashboard
+                        await fetchMaterials();
+
+                        // ✅ Close the modal after update
                         editModal.style.display = "none";
                     } else {
-                        alert("Failed to update material");
+                        alert("Failed to update material: " + (data.message || "Unknown error"));
                     }
                 } catch (error) {
                     console.error("Error updating material:", error);
-                    alert("Error updating material. Please try again.");
+                    
+                    if (error.message.includes("Failed to update")) {
+                        alert("Material update failed: " + error.message);
+                    } else if (!navigator.onLine) {
+                        alert("No internet connection. Please check your network.");
+                    } else {
+                        alert("A network error occurred. Please try again.");
+                    }
                 }
             } else {
-                alert("Insufficient stock available.");
+                alert("Not enough stock available for dispatch!");
             }
-        };
-    }
+        }
+    });
 
     // Function to download the summary as Excel
     function downloadExcel() {

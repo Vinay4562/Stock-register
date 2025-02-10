@@ -4,6 +4,8 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const path = require('path');
+const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
@@ -19,12 +21,26 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+app.use(morgan('dev')); // Logging middleware
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Rate limiting to prevent excessive API calls
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // Limit each IP to 100 requests per windowMs
+});
+app.use('/api/', limiter);
+
 // Session setup
 app.use(session({
   secret: process.env.SESSION_SECRET || 'chantichitti2255@',
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } // Set to false for local development (set to true when using HTTPS)
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // Set to true in production
+    httpOnly: true,
+    sameSite: 'strict' // Add this to improve security
+  }
 }));
 
 const mongoURI = process.env.MONGODB_URI;
@@ -32,15 +48,32 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("Connected to MongoDB"))
   .catch(err => console.log("MongoDB Connection Error: ", err));
 
-const materialSchema = new mongoose.Schema({
-  name: String,
-  type: String,
-  stock: Number,
-  dispatched: Number,
-  remarks: [String],
-  lastUpdated: { type: Date, default: Date.now },
+  const MaterialSchema = new mongoose.Schema({
+    name: String,
+    type: String,
+    stock: Number,
+    dispatched: Number,
+    remarks: [String],
+    dispatchHistory: [
+        {
+            quantity: Number,
+            date: Date,
+            remarks: String
+        }
+    ],
+    addedDate: {
+        type: Date,
+        default: Date.now, // Set only when the material is created
+        immutable: true  // This prevents the field from being updated
+    },
+    lastUpdated: {
+        type: Date,
+        default: Date.now
+    }
 });
-const Material = mongoose.model('Material', materialSchema);
+
+const Material = mongoose.model("Material", MaterialSchema);
+module.exports = Material;
 
 const users = [
   { username: 'Shankarpally400kv', password: bcrypt.hashSync('password123', 10) }
@@ -87,9 +120,10 @@ app.post('/logout', (req, res) => {
 app.get('/api/materials', isAuthenticated, async (req, res) => {
   try {
     const materials = await Material.find();
-    res.json(materials);
+    res.json(materials);  // Ensure that 'addedDate' is included in the response
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Error fetching materials:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -106,31 +140,53 @@ app.get('/api/last-updated', isAuthenticated, async (req, res) => {
 });
 
 app.post('/api/materials', isAuthenticated, async (req, res) => {
+  const { name, type, stock, remarks } = req.body;
+
   try {
-    const newMaterial = new Material(req.body);
+    const newMaterial = new Material({
+      name,
+      type,
+      stock,
+      dispatched: 0,
+      remarks: remarks || ["Nil"],
+      addedDate: new Date(),  // Ensure addedDate is set to the current date and time
+      lastUpdated: new Date() // Initially set to the same value
+    });
+
     await newMaterial.save();
-    res.json(newMaterial);
+    res.json({ success: true, material: newMaterial });
   } catch (err) {
-    res.status(500).send("Error saving material: " + err.message);
+    console.error("Error adding material:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
 app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
-  const { id } = req.params;
-  const { name, type, stock, dispatched, remarks } = req.body;
+  const { name, type, stock, dispatched, remarks, dispatchHistory } = req.body;
 
   try {
-    const material = await Material.findById(id);
-    material.name = name;
-    material.type = type;
-    material.stock = stock;
-    material.dispatched = dispatched;
-    material.remarks = remarks;
-    material.lastUpdated = Date.now();
-    await material.save();
-    res.json(material);
+      const material = await Material.findById(req.params.id);
+
+      if (!material) {
+          return res.status(404).json({ success: false, message: "Material not found" });
+      }
+
+      // Do NOT change 'addedDate' on updates
+      material.name = name || material.name;
+      material.type = type || material.type;
+      material.stock = stock !== undefined ? stock : material.stock;
+      material.dispatched = dispatched !== undefined ? dispatched : material.dispatched;
+      material.remarks = remarks || material.remarks;
+      material.dispatchHistory = dispatchHistory || material.dispatchHistory;
+      
+      material.lastUpdated = new Date(); // Only update lastUpdated
+
+      await material.save();
+      res.json({ success: true, material });
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+      console.error("Error updating material:", err);
+      res.status(500).json({ success: false, message: err.message });
   }
 });
 
