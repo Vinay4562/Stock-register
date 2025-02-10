@@ -537,10 +537,13 @@
         editMaterialTypeInput.value = material.type;
         editMaterialDispatchedInput.value = ""; // Clear previous dispatched input
 
-        // ✅ Properly extract text from remarks
-        editMaterialRemarksInput.value = material.remarks.length > 0 
-            ? material.remarks.map(r => (typeof r === "object" && r.text ? r.text : r)).join(", ") 
-            : ""; // Handle empty remarks properly
+        // ✅ Ensure remarks field is empty if there are no valid remarks
+        editMaterialRemarksInput.value = material.remarks && material.remarks.length > 0 
+            ? material.remarks
+                .map(r => (typeof r === "object" && r.text ? r.text : ""))
+                .filter(r => r.trim() !== "") // Remove empty remarks
+                .join(", ") 
+            : ""; // If no remarks, make the field empty
 
         editModal.style.display = "block"; // Show modal
     }
