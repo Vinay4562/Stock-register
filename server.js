@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const path = require('path');
@@ -12,41 +13,45 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// CORS setup to allow requests from localhost for local development
+// CORS setup
 const corsOptions = {
-  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'], // Array of allowed origins
+  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true, // Allow cookies (sessions) to be sent
+  credentials: true,
 };
-
 app.use(cors(corsOptions));
-app.use(morgan('dev')); // Logging middleware
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(morgan('dev'));
 
-// Rate limiting to prevent excessive API calls
+// Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
 });
 app.use('/api/', limiter);
 
-// Session setup
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.error("MongoDB Connection Error:", err));
+
+// Use MongoDB as session store
 app.use(session({
   secret: process.env.SESSION_SECRET || 'chantichitti2255@',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    collectionName: 'sessions',
+  }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Set to true in production
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'strict' // Add this to improve security
-  }
+    sameSite: 'strict',
+    maxAge: 1000 * 60 * 60 * 24, // 1 day
+  },
 }));
 
-// MongoDB connection using environment variable
-mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("Connected to MongoDB"))
-  .catch(err => console.log("MongoDB Connection Error: ", err));
-
+// MongoDB Schema
 const MaterialSchema = new mongoose.Schema({
     name: String,
     type: String,
@@ -70,10 +75,10 @@ const MaterialSchema = new mongoose.Schema({
         default: Date.now
     }
 });
-
 const Material = mongoose.model("Material", MaterialSchema);
 module.exports = Material;
 
+// User authentication (example)
 const users = [
   { username: 'Shankarpally400kv', password: bcrypt.hashSync('password123', 10) }
 ];
@@ -99,17 +104,12 @@ function isAuthenticated(req, res, next) {
 }
 
 app.get('/check-login', (req, res) => {
-  if (req.session.user) {
-    res.json({ loggedIn: true });
-  } else {
-    res.json({ loggedIn: false });
-  }
+  res.json({ loggedIn: !!req.session.user });
 });
 
 app.post('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) return res.status(500).json({ message: 'Logout failed' });
-
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.json({ success: true, redirect: '/login.html' });
   });
@@ -125,32 +125,14 @@ app.get('/api/materials', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/api/last-updated', isAuthenticated, async (req, res) => {
-  try {
-    const lastUpdated = await Material.findOne({}, {}, { sort: { updatedAt: -1 } }).select('updatedAt');
-    if (!lastUpdated) {
-      return res.status(404).json({ message: 'Last updated data not found' });
-    }
-    res.json({ lastUpdated: lastUpdated.updatedAt });
-  } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
 app.post('/api/materials', isAuthenticated, async (req, res) => {
-  const { name, type, stock, remarks } = req.body;
-
   try {
     const newMaterial = new Material({
-      name,
-      type,
-      stock,
+      ...req.body,
       dispatched: 0,
-      remarks: remarks || ["Nil"],
-      addedDate: new Date(),
+      remarks: req.body.remarks || ["Nil"],
       lastUpdated: new Date()
     });
-
     await newMaterial.save();
     res.json({ success: true, material: newMaterial });
   } catch (err) {
@@ -160,30 +142,20 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
 });
 
 app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
-  const { name, type, stock, dispatched, remarks, dispatchHistory } = req.body;
-
   try {
-      const material = await Material.findById(req.params.id);
+    const material = await Material.findByIdAndUpdate(req.params.id, {
+      ...req.body,
+      lastUpdated: new Date(),
+    }, { new: true });
 
-      if (!material) {
-          return res.status(404).json({ success: false, message: "Material not found" });
-      }
+    if (!material) {
+      return res.status(404).json({ success: false, message: "Material not found" });
+    }
 
-      material.name = name || material.name;
-      material.type = type || material.type;
-      material.stock = stock !== undefined ? stock : material.stock;
-      material.dispatched = dispatched !== undefined ? dispatched : material.dispatched;
-      material.remarks = remarks || material.remarks;
-      material.dispatchHistory = dispatchHistory || material.dispatchHistory;
-      
-      material.lastUpdated = new Date();
-
-      await material.save();
-      res.json({ success: true, material });
-
+    res.json({ success: true, material });
   } catch (err) {
-      console.error("Error updating material:", err);
-      res.status(500).json({ success: false, message: err.message });
+    console.error("Error updating material:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
