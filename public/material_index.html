@@ -213,60 +213,64 @@
 
     // Render the material stock and summary
     function renderStock(filteredMaterials = materials) {
-        stockList.innerHTML = ''; // Clear table before rendering
+    stockList.innerHTML = ''; // Clear table before rendering
 
-        filteredMaterials.forEach((material, index) => {
-            const { name, type, stock, dispatched, remarks, addedDate, lastUpdated, dispatchHistory } = material;
-            const totalMaterial = stock + dispatched;
-            const displayRemarks = remarks.length === 0 || remarks[0].trim() === "" ? ["Nil"] : remarks;
+    filteredMaterials.forEach((material, index) => {
+        const { name, type, stock, dispatched, remarks, addedDate, lastUpdated, dispatchHistory } = material;
+        const totalMaterial = stock + dispatched;
 
-            // Ensure addedDate is correctly formatted (keep original date)
-            let addedDateFormatted = "Unknown";
-            if (addedDate) {
-                addedDateFormatted = formatDate(new Date(addedDate)); // Format addedDate
-            }
+        // ✅ Fix: Ensure remarks is an array and all values are strings
+        const displayRemarks = (!Array.isArray(remarks) || remarks.length === 0)
+            ? ["Nil"]
+            : remarks.map(r => (typeof r === "string" ? r.trim() : (r.text ? String(r.text).trim() : "Nil")));
 
-            // Ensure lastUpdated is correctly formatted
-            let lastUpdatedFormatted = "Unknown";
-            if (lastUpdated) {
-                lastUpdatedFormatted = formatDate(new Date(lastUpdated));  // Format lastUpdated
-            }
+        // Ensure addedDate is correctly formatted (keep original date)
+        let addedDateFormatted = "Unknown";
+        if (addedDate) {
+            addedDateFormatted = formatDate(new Date(addedDate)); // Format addedDate
+        }
 
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>
-                    <small style="color: red; font-size: 12px;">Added: ${addedDateFormatted}</small>
-                    <br>
-                    <strong>${name}</strong>
-                    <br>
-                    ${dispatchHistory && dispatchHistory.length > 0
-                        ? dispatchHistory.map(d => `
-                            <small style="color: blue; font-size: 12px;">
-                                Dispatched: ${d.quantity}No's, Date: ${formatDate(new Date(d.date))}, 
-                                Remarks: ${d.remarks ? d.remarks : "Nil"}
-                            </small><br>`
-                        ).join("")
-                        : ""
-                    }
-                </td>
-                <td>${type}</td>
-                <td>${stock}</td>
-                <td>${dispatched}</td>
-                <td>${totalMaterial}</td>
-                <td>
-                    <ul class="remarks-list">
-                        ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
-                    </ul>
-                </td>
-                <td>
-                    <button class="edit-btn" onclick="editMaterial(${index})">Edit</button>
-                    <button class="delete-btn" onclick="deleteMaterial(${index})">Delete</button>
-                </td>
-            `;
-            stockList.appendChild(row);
-        });
-    }
+        // Ensure lastUpdated is correctly formatted
+        let lastUpdatedFormatted = "Unknown";
+        if (lastUpdated) {
+            lastUpdatedFormatted = formatDate(new Date(lastUpdated));  // Format lastUpdated
+        }
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${index + 1}</td>
+            <td>
+                <small style="color: red; font-size: 12px;">Added: ${addedDateFormatted}</small>
+                <br>
+                <strong>${name}</strong>
+                <br>
+                ${dispatchHistory && dispatchHistory.length > 0
+                    ? dispatchHistory.map(d => `
+                        <small style="color: blue; font-size: 12px;">
+                            Dispatched: ${d.quantity} No's, Date: ${formatDate(new Date(d.date))}, 
+                            Remarks: ${d.remarks ? d.remarks : "Nil"}
+                        </small><br>`).join("")
+                    : ""
+                }
+            </td>
+            <td>${type}</td>
+            <td>${stock}</td>
+            <td>${dispatched}</td>
+            <td>${totalMaterial}</td>
+            <td>
+                <ul class="remarks-list">
+                    ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
+                </ul>
+            </td>
+            <td>
+                <button class="edit-btn" onclick="editMaterial(${index})">Edit</button>
+                <button class="delete-btn" onclick="deleteMaterial(${index})">Delete</button>
+            </td>
+        `;
+        stockList.appendChild(row);
+    });
+}
+
 
     // Helper function to create a material row
     function createMaterialRow(material, index) {
