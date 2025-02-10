@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');  // ✅ Store sessions in MongoDB
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const path = require('path');
@@ -10,54 +11,54 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// CORS setup to allow requests from localhost for local development
+// ✅ CORS Configuration
 const corsOptions = {
-  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'], // Array of allowed origins
+  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true, // Allow cookies (sessions) to be sent
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
-
 app.use(cors(corsOptions));
 
-// Session setup
+const mongoURI = process.env.MONGODB_URI;
+
+// ✅ Store sessions in MongoDB (NOT MemoryStore)
 app.use(session({
   secret: process.env.SESSION_SECRET || 'chantichitti2255@',
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: false } // Set to false for local development (set to true when using HTTPS)
+  saveUninitialized: false,
+  store: MongoStore.create({ mongoUrl: mongoURI }),
+  cookie: { secure: false, httpOnly: true } // Secure=true only in production with HTTPS
 }));
-
-const mongoURI = process.env.MONGODB_URI;
 
 mongoose.connect(mongoURI)
   .then(() => console.log("Connected to MongoDB"))
   .catch(err => console.error("MongoDB Connection Error:", err));
 
+// ✅ User Schema & Model (Replace Hardcoded Users)
+const UserSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true, trim: true },
+  password: { type: String, required: true }
+});
+const User = mongoose.model("User", UserSchema);
+
+// ✅ Material Schema with timestamps
 const MaterialSchema = new mongoose.Schema({
-    name: { type: String, required: true, trim: true },
-    type: { type: String, required: true, trim: true },
-    stock: { type: Number, required: true, min: 0 },  // Prevents negative stock
-    dispatched: { type: Number, default: 0, min: 0 }, // Prevents negative dispatched count
-    remarks: [{ text: String, date: { type: Date, default: Date.now } }], // Tracks remark timestamps
+    name: { type: String, required: true, trim: true, maxlength: 100 },
+    type: { type: String, required: true, trim: true, maxlength: 50 },
+    stock: { type: Number, required: true, min: 0 },
+    dispatched: { type: Number, default: 0, min: 0 },
+    remarks: [{ text: String, date: { type: Date, default: Date.now } }],
     dispatchHistory: [
         {
             quantity: { type: Number, required: true, min: 1 },
             date: { type: Date, default: Date.now },
             remarks: String
         }
-    ],
-    addedDate: { type: Date, default: Date.now, immutable: true },
-    lastUpdated: { type: Date, default: Date.now }
-});
-
-// Middleware to auto-update `lastUpdated`
-MaterialSchema.pre("save", function (next) {
-    this.lastUpdated = Date.now();
-    next();
-});
+    ]
+}, { timestamps: true });  // ✅ Automatically track createdAt and updatedAt
 
 const Material = mongoose.model("Material", MaterialSchema);
-module.exports = Material;
 
 const users = [
   { username: 'Shankarpally400kv', password: bcrypt.hashSync('password123', 10) }
