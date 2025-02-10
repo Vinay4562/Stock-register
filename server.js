@@ -12,7 +12,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // CORS setup
 const corsOptions = {
-  origin: ['http://localhost:8000', 'https://your-frontend-domain.com'],
+  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 };
@@ -30,10 +30,6 @@ app.use(session({
   }
 }));
 
-const users = [
-  { username: 'Shankarpally400kv', password: bcrypt.hashSync('password123', 10) }
-];
-
 // MongoDB Connection
 const mongoURI = process.env.MONGODB_URI;
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -43,7 +39,14 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     process.exit(1);
   });
 
-// Material Schema
+// User Schema & Model
+const UserSchema = new mongoose.Schema({
+  username: { type: String, unique: true, required: true },
+  password: { type: String, required: true }
+});
+const User = mongoose.model("User", UserSchema);
+
+// Material Schema & Model
 const MaterialSchema = new mongoose.Schema({
   name: String,
   type: String,
@@ -55,17 +58,10 @@ const MaterialSchema = new mongoose.Schema({
     date: Date,
     remarks: String
   }],
-  addedDate: { type: Date, default: Date.now, immutable: true },
+  addedDate: { type: Date, default: Date.now, immutable: true }
 }, { timestamps: true });
 
 const Material = mongoose.model("Material", MaterialSchema);
-
-// User Schema (Instead of in-memory array)
-const UserSchema = new mongoose.Schema({
-  username: { type: String, unique: true },
-  password: String
-});
-const User = mongoose.model("User", UserSchema);
 
 // Authentication Middleware
 function isAuthenticated(req, res, next) {
@@ -76,34 +72,44 @@ function isAuthenticated(req, res, next) {
   }
 }
 
-// User Login
+// **User Login**
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = await User.findOne({ username });
-  
-  if (user && bcrypt.compareSync(password, user.password)) {
+
+  try {
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+
     req.session.user = username;
     res.json({ success: true, redirect: '/material_index.html' });
-  } else {
-    res.status(401).json({ success: false, message: 'Invalid credentials' });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 });
 
-// Check Login Status
+// **Check Login Status**
 app.get('/check-login', (req, res) => {
   res.json({ loggedIn: !!req.session.user });
 });
 
-// Logout
+// **Logout**
 app.post('/logout', (req, res) => {
   req.session.destroy(err => {
-    if (err) return res.status(500).json({ message: 'Logout failed' });
+    if (err) return res.status(500).json({ message: "Logout failed" });
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.json({ success: true, redirect: '/login.html' });
   });
 });
 
-// Get Materials
+// **Get All Materials**
 app.get('/api/materials', isAuthenticated, async (req, res) => {
   try {
     const materials = await Material.find();
@@ -114,21 +120,25 @@ app.get('/api/materials', isAuthenticated, async (req, res) => {
   }
 });
 
-// Get Last Updated Material
+// **Get Last Updated Material**
 app.get('/api/last-updated', isAuthenticated, async (req, res) => {
   try {
     const lastUpdated = await Material.findOne({}, {}, { sort: { updatedAt: -1 } }).select('updatedAt');
-    if (!lastUpdated) return res.status(404).json({ message: 'No data found' });
+    if (!lastUpdated) return res.status(404).json({ message: "No data found" });
     res.json({ lastUpdated: lastUpdated.updatedAt });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// Add Material
+// **Add New Material**
 app.post('/api/materials', isAuthenticated, async (req, res) => {
   try {
     const { name, type, stock, remarks } = req.body;
+    if (!name || !type || stock === undefined) {
+      return res.status(400).json({ success: false, message: "All fields are required" });
+    }
+
     const newMaterial = new Material({
       name,
       type,
@@ -136,6 +146,7 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
       dispatched: 0,
       remarks: remarks || ["Nil"],
     });
+
     await newMaterial.save();
     res.json({ success: true, material: newMaterial });
   } catch (err) {
@@ -144,15 +155,16 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
   }
 });
 
-// Update Material
+// **Update Material**
 app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ success: false, message: "Invalid material ID" });
-  }
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid material ID" });
+    }
+
     const material = await Material.findById(req.params.id);
     if (!material) return res.status(404).json({ success: false, message: "Material not found" });
-    
+
     Object.assign(material, req.body, { lastUpdated: new Date() });
     await material.save();
     res.json({ success: true, material });
@@ -162,20 +174,22 @@ app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
   }
 });
 
-// Delete Material
+// **Delete Material**
 app.delete('/api/materials/:id', isAuthenticated, async (req, res) => {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ success: false, message: "Invalid material ID" });
-  }
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: "Invalid material ID" });
+    }
+
     await Material.findByIdAndDelete(req.params.id);
     res.json({ message: "Material deleted" });
   } catch (err) {
-    res.status(500).send("Error deleting material: " + err.message);
+    console.error("Error deleting material:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
-// Start Server
+// **Start Server**
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
