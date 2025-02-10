@@ -169,103 +169,97 @@
     let materials = [];
     let editingIndex = -1;
 
- // Utility function to format date as DD-MM-YYYY HH:mm:ss
-function formatDate(dateString) {
-    if (!dateString) return "Unknown";  // ✅ Handle null values
-    const date = new Date(dateString);
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-    const h = date.getHours().toString().padStart(2, '0');
-    const min = date.getMinutes().toString().padStart(2, '0');
-    return `${d}-${m}-${y} ${h}:${min}`;
-}
-
-// Function to update the last updated date and time
-// Function to update the last updated date and time
-function updateLastUpdated(action) {
-    const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
-    console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
-    
-    // Store the last updated timestamp in localStorage
-    localStorage.setItem('lastUpdated', lastUpdatedDate);
-
-    const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
-    if (lastUpdatedElement) {
-        // Update the UI
-        lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
-    } else {
-        console.error('Element with ID "last-updated" not found.');
+    // Utility function to format date as DD-MM-YYYY HH:mm:ss
+    function formatDate(dateString) {
+        if (!dateString) return "Unknown";  // ✅ Handle null values
+        const date = new Date(dateString);
+        const d = date.getDate().toString().padStart(2, '0');
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const y = date.getFullYear();
+        const h = date.getHours().toString().padStart(2, '0');
+        const min = date.getMinutes().toString().padStart(2, '0');
+        return `${d}-${m}-${y} ${h}:${min}`;
     }
-}
 
-// Function to load the last updated date and time from localStorage
-function loadLastUpdated() {
-    const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
+    // Function to update the last updated date and time
+    // Function to update the last updated date and time
+    function updateLastUpdated(action) {
+        const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
+        console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
+        
+        // Store the last updated timestamp in localStorage
+        localStorage.setItem('lastUpdated', lastUpdatedDate);
 
-    if (lastUpdatedElement) {
-        const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
-        if (lastUpdatedFromStorage) {
-            lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
+        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
+        if (lastUpdatedElement) {
+            // Update the UI
+            lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
         } else {
-            console.log('No last updated timestamp found in localStorage.');
+            console.error('Element with ID "last-updated" not found.');
         }
-    } else {
-        console.error('Element with ID "last-updated" not found.');
     }
-}
+
+    // Function to load the last updated date and time from localStorage
+    function loadLastUpdated() {
+        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
+
+        if (lastUpdatedElement) {
+            const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
+            if (lastUpdatedFromStorage) {
+                lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
+            } else {
+                console.log('No last updated timestamp found in localStorage.');
+            }
+        } else {
+            console.error('Element with ID "last-updated" not found.');
+        }
+    }
 
     // Run this function once the page has fully loaded
     document.addEventListener('DOMContentLoaded', function () {
       loadLastUpdated();  // Call this when the page is fully loaded
     });
 
-async function fetchMaterials() {
-    try {
-        const response = await fetch("https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials");
-        const materials = await response.json();
+    async function fetchMaterials() {
+        try {
+            const response = await fetch("https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials");
+            const materials = await response.json();
 
-        // Check if materials exist and fetch the most recent 'lastUpdated' timestamp
-        if (materials && materials.length > 0) {
-            const latestUpdatedMaterial = materials.reduce((latest, material) => {
-                // Compare lastUpdated timestamps to find the latest one
-                return new Date(latest.lastUpdated) > new Date(material.lastUpdated) ? latest : material;
-            });
+            // Check if materials exist and fetch the most recent 'lastUpdated' timestamp
+            if (materials && materials.length > 0) {
+                const latestUpdatedMaterial = materials.reduce((latest, material) => {
+                    // Compare lastUpdated timestamps to find the latest one
+                    return new Date(latest.lastUpdated) > new Date(material.lastUpdated) ? latest : material;
+                });
 
-            const latestLastUpdated = latestUpdatedMaterial.lastUpdated;
-            console.log("Most recent 'Last Updated' timestamp from materials:", latestLastUpdated);
+                const latestLastUpdated = latestUpdatedMaterial.lastUpdated;
+                console.log("Most recent 'Last Updated' timestamp from materials:", latestLastUpdated);
 
-            // Update the Last Updated timestamp on the UI
-            updateLastUpdatedOnUI(latestLastUpdated);
+                // Update the Last Updated timestamp on the UI
+                updateLastUpdatedOnUI(latestLastUpdated);
+            }
+
+            // Process the fetched materials...
+            renderMaterials(materials);
+
+        } catch (error) {
+            console.error("Error fetching materials:", error);
         }
-
-        // Process the fetched materials...
-        renderMaterials(materials);
-
-    } catch (error) {
-        console.error("Error fetching materials:", error);
     }
-}
 
-function updateLastUpdatedOnUI(latestLastUpdated) {
-    const lastUpdatedElement = document.getElementById('lastUpdated'); // Assuming you have an element with this ID to show the timestamp
-    const formattedDate = new Date(latestLastUpdated).toLocaleString(); // Format the date in a user-friendly format
-    if (lastUpdatedElement) {
-        lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
-    } else {
-        console.error('Element with ID "lastUpdated" not found.');
+    function updateLastUpdatedOnUI(latestLastUpdated) {
+        const lastUpdatedElement = document.getElementById('lastUpdated'); // Assuming you have an element with this ID to show the timestamp
+        const formattedDate = new Date(latestLastUpdated).toLocaleString(); // Format the date in a user-friendly format
+        if (lastUpdatedElement) {
+            lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
+        } else {
+            console.error('Element with ID "lastUpdated" not found.');
+        }
     }
-}
 
-function saveLastUpdatedToLocalStorage(latestLastUpdated) {
-    localStorage.setItem('lastUpdated', latestLastUpdated);
-}
-
-// Call the load function once the DOM is fully loaded
-document.addEventListener('DOMContentLoaded', function() {
-    loadLastUpdated();
-});
-
+    function saveLastUpdatedToLocalStorage(latestLastUpdated) {
+        localStorage.setItem('lastUpdated', latestLastUpdated);
+    }
 
     // Render the material stock and summary
     function renderStock(filteredMaterials = materials) {
