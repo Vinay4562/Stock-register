@@ -295,6 +295,11 @@
         materialSummaryContainer.innerHTML = ''; // Clear existing summary content
         let serialNumber = 1;
 
+        if (Object.keys(summaryMap).length === 0) {
+            materialSummaryContainer.innerHTML = '<tr><td colspan="6">No materials available</td></tr>';
+            return;
+        }
+
         for (const type in summaryMap) {
             const { totalStock, totalDispatched, totalMaterial, materials } = summaryMap[type];
 
@@ -308,8 +313,9 @@
                 <td>
                     <ul class="remarks-list">
                         ${materials.map(material => {
+                            // ✅ Ensure remarks are properly extracted
                             const displayRemarks = Array.isArray(material.remarks) && material.remarks.length > 0
-                                ? material.remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
+                                ? material.remarks.map(r => (r.text ? r.text.trim() : "Nil")) // Extract `text` from object
                                 : ["Nil"];
 
                             return ` 
