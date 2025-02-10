@@ -195,46 +195,57 @@
 
     // Function to load the last updated date and time from localStorage
     function loadLastUpdated() {
-    // Check if a last updated timestamp is stored in localStorage
     const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
+    const lastUpdatedElement = document.getElementById('lastUpdated');
 
     if (lastUpdatedFromStorage) {
-        console.log("Last Updated from localStorage: ", lastUpdatedFromStorage);
-        // If available in localStorage, use it
-        lastUpdatedElement.textContent = `Last Updated: ${lastUpdatedFromStorage}`;
+        lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
     } else {
-        console.log("No last updated timestamp found in localStorage, fetching from DB...");
-        fetchLastUpdatedFromDB();
+        // If no timestamp in localStorage, fetch the latest from DB
+        fetchMaterials(); // This will update the UI with the latest data
     }
 }
 
-window.onload = function() {
-    loadLastUpdated();  // Ensure we load and display the last updated timestamp
-};
+// Call on page load
+window.onload = loadLastUpdated;
 
 
-    async function fetchLastUpdatedFromDB() {
-        try {
-            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
-            if (response.ok) {
-                const materials = await response.json();
-                const latestMaterial = materials.reduce((latest, current) => {
-                    return new Date(current.lastUpdated) > new Date(latest.lastUpdated) ? current : latest;
-                });
+async function fetchMaterials() {
+    try {
+        const response = await fetch("https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials");
+        const materials = await response.json();
 
-                const formattedDate = formatDate(new Date(latestMaterial.lastUpdated));
-                lastUpdatedElement.textContent = `Last Updated: ${formattedDate} (From DB)`;
+        // Check if materials exist and fetch the most recent 'lastUpdated' timestamp
+        if (materials && materials.length > 0) {
+            const latestUpdatedMaterial = materials.reduce((latest, material) => {
+                // Compare lastUpdated timestamps to find the latest one
+                return new Date(latest.lastUpdated) > new Date(material.lastUpdated) ? latest : material;
+            });
 
-                // Store the latest timestamp in localStorage
-                localStorage.setItem('lastUpdated', formattedDate);
-            } else {
-                alert("Failed to load materials");
-            }
-        } catch (error) {
-            console.error("Error fetching materials:", error);
-            alert("Failed to load last updated data.");
+            const latestLastUpdated = latestUpdatedMaterial.lastUpdated;
+            console.log("Most recent 'Last Updated' timestamp from materials:", latestLastUpdated);
+
+            // Update the Last Updated timestamp on the UI
+            updateLastUpdatedOnUI(latestLastUpdated);
         }
+
+        // Process the fetched materials...
+        renderMaterials(materials);
+
+    } catch (error) {
+        console.error("Error fetching materials:", error);
     }
+}
+
+function updateLastUpdatedOnUI(latestLastUpdated) {
+    const lastUpdatedElement = document.getElementById('lastUpdated'); // Assuming you have an element with this ID to show the timestamp
+    const formattedDate = new Date(latestLastUpdated).toLocaleString(); // Format the date in a user-friendly format
+    lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
+}
+
+function saveLastUpdatedToLocalStorage(latestLastUpdated) {
+    localStorage.setItem('lastUpdated', latestLastUpdated);
+}
 
 
     // Render the material stock and summary
