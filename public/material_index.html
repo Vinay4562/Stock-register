@@ -182,14 +182,30 @@
 
     // Function to update the last updated date and time
     function updateLastUpdated(action) {
-        const now = new Date();
-        const formattedDate = formatDate(now);
-        const updateMessage = `Last Updated: ${formattedDate} (${action})`;
-        lastUpdatedElement.textContent = updateMessage;
+        const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
+
+        // Store the last updated timestamp in localStorage
+        localStorage.setItem('lastUpdated', lastUpdatedDate);
+
+        // Update the UI
+        lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
     }
 
     // Function to load the last updated date and time from localStorage
-    async function loadLastUpdated() {
+    function loadLastUpdated() {
+        // Check if a last updated timestamp is stored in localStorage
+        const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
+
+        if (lastUpdatedFromStorage) {
+            // If available in localStorage, use it
+            lastUpdatedElement.textContent = `Last Updated: ${lastUpdatedFromStorage} (From Local Storage)`;
+        } else {
+            // Fallback to database fetching if not in localStorage
+            fetchLastUpdatedFromDB();
+        }
+    }
+
+    async function fetchLastUpdatedFromDB() {
         try {
             const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
             if (response.ok) {
@@ -199,7 +215,7 @@
                 });
 
                 const formattedDate = formatDate(new Date(latestMaterial.lastUpdated));
-                lastUpdatedElement.textContent = `Last Updated: ${formattedDate} (From MongoDB)`;
+                lastUpdatedElement.textContent = `Last Updated: ${formattedDate} (From DB)`;
 
                 // Store the latest timestamp in localStorage
                 localStorage.setItem('lastUpdated', formattedDate);
