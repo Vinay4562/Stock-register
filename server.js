@@ -133,7 +133,10 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
       type,
       stock,
       dispatched: 0,
-      remarks: remarks || ["Nil"],
+      remarks: Array.isArray(remarks) && remarks.length > 0 
+                ? remarks.map(r => (typeof r === 'string' ? { text: r } : r)) // Ensure object format
+                : [{ text: "Nil" }], // Default value
+    
       addedDate: new Date(),  // Ensure addedDate is set to the current date and time
       lastUpdated: new Date() // Initially set to the same value
     });
@@ -161,9 +164,12 @@ app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
       material.type = type || material.type;
       material.stock = stock !== undefined ? stock : material.stock;
       material.dispatched = dispatched !== undefined ? dispatched : material.dispatched;
-      material.remarks = remarks || material.remarks;
-      material.dispatchHistory = dispatchHistory || material.dispatchHistory;
       
+      material.remarks = Array.isArray(remarks) && remarks.length > 0 
+                         ? remarks.map(r => (typeof r === 'string' ? { text: r } : r)) 
+                         : material.remarks; // Retain previous remarks if empty
+
+      material.dispatchHistory = dispatchHistory || material.dispatchHistory;
       material.lastUpdated = new Date(); // Only update lastUpdated
 
       await material.save();
