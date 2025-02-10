@@ -28,32 +28,32 @@ app.use(session({
 }));
 
 const mongoURI = process.env.MONGODB_URI;
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log("Connected to MongoDB"))
-  .catch(err => console.log("MongoDB Connection Error: ", err));
 
-  const MaterialSchema = new mongoose.Schema({
-    name: String,
-    type: String,
-    stock: Number,
-    dispatched: Number,
-    remarks: [String],
+mongoose.connect(mongoURI)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.error("MongoDB Connection Error:", err));
+
+const MaterialSchema = new mongoose.Schema({
+    name: { type: String, required: true, trim: true },
+    type: { type: String, required: true, trim: true },
+    stock: { type: Number, required: true, min: 0 },  // Prevents negative stock
+    dispatched: { type: Number, default: 0, min: 0 }, // Prevents negative dispatched count
+    remarks: [{ text: String, date: { type: Date, default: Date.now } }], // Tracks remark timestamps
     dispatchHistory: [
         {
-            quantity: Number,
-            date: Date,
+            quantity: { type: Number, required: true, min: 1 },
+            date: { type: Date, default: Date.now },
             remarks: String
         }
     ],
-    addedDate: {
-        type: Date,
-        default: Date.now, // Set only when the material is created
-        immutable: true  // This prevents the field from being updated
-    },
-    lastUpdated: {
-        type: Date,
-        default: Date.now
-    }
+    addedDate: { type: Date, default: Date.now, immutable: true },
+    lastUpdated: { type: Date, default: Date.now }
+});
+
+// Middleware to auto-update `lastUpdated`
+MaterialSchema.pre("save", function (next) {
+    this.lastUpdated = Date.now();
+    next();
 });
 
 const Material = mongoose.model("Material", MaterialSchema);
