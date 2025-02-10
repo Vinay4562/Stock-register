@@ -190,48 +190,27 @@
 
     // Function to load the last updated date and time from localStorage
     async function loadLastUpdated() {
-    try {
-        const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
-        
-        if (!response.ok) {
-            throw new Error("Failed to load materials");
+        try {
+            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
+            if (response.ok) {
+                const materials = await response.json();
+                const latestMaterial = materials.reduce((latest, current) => {
+                    return new Date(current.lastUpdated) > new Date(latest.lastUpdated) ? current : latest;
+                });
+
+                const formattedDate = formatDate(new Date(latestMaterial.lastUpdated));
+                lastUpdatedElement.textContent = `Last Updated: ${formattedDate} (From MongoDB)`;
+
+                // Store the latest timestamp in localStorage
+                localStorage.setItem('lastUpdated', formattedDate);
+            } else {
+                alert("Failed to load materials");
+            }
+        } catch (error) {
+            console.error("Error fetching materials:", error);
+            alert("Failed to load last updated data.");
         }
-
-        const materials = await response.json();
-
-        // ✅ Check if materials array is empty
-        if (!materials.length) {
-            lastUpdatedElement.textContent = "Last Updated: No data available";
-            return;
-        }
-
-        // ✅ Filter materials that have a valid lastUpdated field
-        const validMaterials = materials.filter(mat => mat.lastUpdated);
-
-        // ✅ Check if there are valid lastUpdated timestamps
-        if (!validMaterials.length) {
-            lastUpdatedElement.textContent = "Last Updated: No valid timestamps";
-            return;
-        }
-
-        // ✅ Find the latest updated material
-        const latestMaterial = validMaterials.reduce((latest, current) => 
-            new Date(current.lastUpdated) > new Date(latest.lastUpdated) ? current : latest
-        );
-
-        // ✅ Format the date before displaying
-        const formattedDate = formatDate(new Date(latestMaterial.lastUpdated));
-        lastUpdatedElement.textContent = `Last Updated: ${formattedDate} (From MongoDB)`;
-
-        // ✅ Store the latest timestamp in localStorage
-        localStorage.setItem('lastUpdated', formattedDate);
-
-    } catch (error) {
-        console.error("Error fetching materials:", error);
-        alert("Failed to load last updated data.");
     }
-}
-
 
     // Render the material stock and summary
     function renderStock(filteredMaterials = materials) {
