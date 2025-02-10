@@ -182,7 +182,6 @@
     }
 
     // Function to update the last updated date and time
-    // Function to update the last updated date and time
     function updateLastUpdated(action) {
         const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
         console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
@@ -190,7 +189,7 @@
         // Store the last updated timestamp in localStorage
         localStorage.setItem('lastUpdated', lastUpdatedDate);
 
-        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
+        const lastUpdatedElement = document.getElementById('last-updated');
         if (lastUpdatedElement) {
             // Update the UI
             lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
@@ -201,7 +200,7 @@
 
     // Function to load the last updated date and time from localStorage
     function loadLastUpdated() {
-        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
+        const lastUpdatedElement = document.getElementById('last-updated');
 
         if (lastUpdatedElement) {
             const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
@@ -209,6 +208,7 @@
                 lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
             } else {
                 console.log('No last updated timestamp found in localStorage.');
+                lastUpdatedElement.textContent = "Last Updated: Not Available"; // Fallback message
             }
         } else {
             console.error('Element with ID "last-updated" not found.');
