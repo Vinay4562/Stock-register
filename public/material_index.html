@@ -296,7 +296,7 @@
     let serialNumber = 1;
 
     if (Object.keys(summaryMap).length === 0) {
-        materialSummaryContainer.innerHTML = '<tr><td colspan="7">No materials available</td></tr>'; // ✅ Added 7 columns to match the table
+        materialSummaryContainer.innerHTML = '<tr><td colspan="7">No materials available</td></tr>';
         return;
     }
 
@@ -313,9 +313,8 @@
             <td>
                 <ul class="remarks-list">
                     ${materials.map(material => {
-                        // ✅ Ensure remarks are properly extracted
                         const displayRemarks = Array.isArray(material.remarks) && material.remarks.length > 0
-                            ? material.remarks.map(r => (r.text ? r.text.trim() : "Nil")) // Extract `text` from object
+                            ? material.remarks.map(r => (r.text ? r.text.trim() : "Nil")) 
                             : ["Nil"];
 
                         return ` 
@@ -325,7 +324,7 @@
                                     ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
                                 </ul>
                                 <div class="last-updated">
-                                    <strong>Last Updated:</strong> ${new Date(material.lastUpdated).toLocaleString()}
+                                    <strong>Last Updated:</strong> ${material.lastUpdatedFormatted}
                                 </div>
                             </li>
                         `;
@@ -336,6 +335,7 @@
         materialSummaryContainer.appendChild(summaryRow);
     }
 }
+
 
 
 function updateSummaryMap(summaryMap, updatedMaterial) {
