@@ -124,32 +124,24 @@ app.get('/api/last-updated', isAuthenticated, async (req, res) => {
   }
 });
 
-app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
-  const { name, type, stock, dispatched, remarks, dispatchHistory } = req.body;
+app.post('/api/materials', isAuthenticated, async (req, res) => {
+  const { name, type, stock, remarks } = req.body;
 
   try {
-    const updatedMaterial = await Material.findByIdAndUpdate(
-      req.params.id,
-      {
-        name,
-        type,
-        stock,
-        dispatched,
-        remarks: Array.isArray(remarks) ? remarks : (remarks ? [{ text: remarks }] : [{ text: "Nil" }]),
-        dispatchHistory,
-        lastUpdated: new Date() // Only update lastUpdated
-      },
-      { new: true } // Return the updated document
-    );
+    const newMaterial = new Material({
+      name,
+      type,
+      stock,
+      dispatched: 0,
+      remarks: Array.isArray(remarks) ? remarks : [{ text: "Nil" }],
+      addedDate: new Date(),
+      lastUpdated: new Date()
+    });
 
-    if (!updatedMaterial) {
-      return res.status(404).json({ success: false, message: "Material not found" });
-    }
-
-    res.json({ success: true, material: updatedMaterial });
-
+    await newMaterial.save();
+    res.json({ success: true, material: newMaterial });
   } catch (err) {
-    console.error("Error updating material:", err);
+    console.error("Error adding material:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
