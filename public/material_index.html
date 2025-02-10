@@ -295,11 +295,6 @@
         materialSummaryContainer.innerHTML = ''; // Clear existing summary content
         let serialNumber = 1;
 
-        if (Object.keys(summaryMap).length === 0) {
-            materialSummaryContainer.innerHTML = '<tr><td colspan="6">No materials available</td></tr>';
-            return;
-        }
-
         for (const type in summaryMap) {
             const { totalStock, totalDispatched, totalMaterial, materials } = summaryMap[type];
 
@@ -313,9 +308,8 @@
                 <td>
                     <ul class="remarks-list">
                         ${materials.map(material => {
-                            // ✅ Ensure remarks are properly extracted
                             const displayRemarks = Array.isArray(material.remarks) && material.remarks.length > 0
-                                ? material.remarks.map(r => (r.text ? r.text.trim() : "Nil")) // Extract `text` from object
+                                ? material.remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
                                 : ["Nil"];
 
                             return ` 
@@ -409,83 +403,84 @@
     }
 
     async function addOrUpdateMaterial() {
-        const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null;
+    const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null;
 
-        const material = {
-            name: materialNameInput.value.trim(),
-            type: materialTypeInput.value,
-            stock: parseInt(materialStockInput.value, 10) || 0,
-            dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
-            remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim() }] : [],
-            addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(), // Preserve original addedDate
-            lastUpdated: new Date().toISOString() // Update lastUpdated timestamp
-        };
+    const material = {
+        name: materialNameInput.value.trim(),
+        type: materialTypeInput.value,
+        stock: parseInt(materialStockInput.value, 10) || 0,
+        dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
+        remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim() }] : [],
+        addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(), // Preserve original addedDate
+        lastUpdated: new Date().toISOString() // Update lastUpdated timestamp
+    };
 
-        const method = existingMaterial ? "PUT" : "POST";
-        const url = existingMaterial
-            ? `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${existingMaterial._id}`
-            : "https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials";
+    const method = existingMaterial ? "PUT" : "POST";
+    const url = existingMaterial
+        ? `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${existingMaterial._id}`
+        : "https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials";
 
-        try {
-            const response = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(material),
-            });
+    try {
+        const response = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(material),
+        });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Failed to add/update material: ${errorData.message}`);
-            }
-
-            console.log("Material successfully added/updated.");
-            
-            showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully"); // ✅ Success message
-
-            await fetchMaterials(); // ✅ Refresh data
-
-            clearForm(); // ✅ Clear form fields
-
-            renderDashboard(calculateSummary(materials)); // ✅ Update dashboard
-
-        } catch (error) {
-            console.error("Error during material add/update:", error);
-            alert("An error occurred while adding/updating the material.");
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Failed to add/update material: ${errorData.message}`);
         }
-    }
 
-    // ✅ Function to show success popup
-    function showSuccessPopup(message) {
-        const popup = document.createElement("div");
-        popup.innerText = message;
-        popup.style.position = "fixed";
-        popup.style.top = "20px";
-        popup.style.left = "50%";
-        popup.style.transform = "translateX(-50%)";
-        popup.style.backgroundColor = "#4CAF50";
-        popup.style.color = "#fff";
-        popup.style.padding = "10px 20px";
-        popup.style.borderRadius = "5px";
-        popup.style.zIndex = "1000";
-        popup.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+        console.log("Material successfully added/updated.");
         
-        document.body.appendChild(popup);
+        showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully"); // ✅ Success message
 
-        // Remove popup after 3 seconds
-        setTimeout(() => {
-            popup.remove();
-        }, 1500);
-    }
+        await fetchMaterials(); // ✅ Refresh data
 
-    // ✅ Function to clear form fields after submission
-    function clearForm() {
-        materialNameInput.value = "";
-        materialTypeInput.value = "";
-        materialStockInput.value = "";
-        materialDispatchedInput.value = "";
-        materialRemarksInput.value = "";
-        editingIndex = -1; // Reset editing state
+        clearForm(); // ✅ Clear form fields
+
+        renderDashboard(calculateSummary(materials)); // ✅ Update dashboard
+
+    } catch (error) {
+        console.error("Error during material add/update:", error);
+        alert("An error occurred while adding/updating the material.");
     }
+}
+
+// ✅ Function to show success popup
+function showSuccessPopup(message) {
+    const popup = document.createElement("div");
+    popup.innerText = message;
+    popup.style.position = "fixed";
+    popup.style.top = "20px";
+    popup.style.left = "50%";
+    popup.style.transform = "translateX(-50%)";
+    popup.style.backgroundColor = "#4CAF50";
+    popup.style.color = "#fff";
+    popup.style.padding = "10px 20px";
+    popup.style.borderRadius = "5px";
+    popup.style.zIndex = "1000";
+    popup.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+    
+    document.body.appendChild(popup);
+
+    // Remove popup after 3 seconds
+    setTimeout(() => {
+        popup.remove();
+    }, 3000);
+}
+
+// ✅ Function to clear form fields after submission
+function clearForm() {
+    materialNameInput.value = "";
+    materialTypeInput.value = "";
+    materialStockInput.value = "";
+    materialDispatchedInput.value = "";
+    materialRemarksInput.value = "";
+    editingIndex = -1; // Reset editing state
+}
+
 
     // Delete material
     async function deleteMaterial(index) {
@@ -522,6 +517,19 @@
         }
     }
 
+    // Function to show message in popup
+    function showMessage(message, type) {
+        popupText.textContent = message;
+        popupText.className = type; // Add success or delete class for different styles
+        popupMessage.style.display = "flex"; // Show the popup
+
+        // Close the popup after 3 seconds
+        setTimeout(() => {
+            popupMessage.style.display = "none";
+        }, 1500);
+    }
+
+
     // Edit material
     function editMaterial(index) {
         editingIndex = index;
@@ -536,11 +544,7 @@
         editMaterialNameInput.value = material.name;
         editMaterialTypeInput.value = material.type;
         editMaterialDispatchedInput.value = ""; // Clear previous dispatched input
-
-        // ✅ Properly extract text from remarks
-        editMaterialRemarksInput.value = material.remarks.length > 0 
-            ? material.remarks.map(r => (typeof r === "object" && r.text ? r.text : r)).join(", ") 
-            : ""; // Handle empty remarks properly
+        editMaterialRemarksInput.value = material.remarks.join(", "); // Join remarks if multiple exist
 
         editModal.style.display = "block"; // Show modal
     }
