@@ -182,31 +182,32 @@
 
     // Function to update the last updated date and time
     function updateLastUpdated(action) {
-        const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
+    const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
 
-        // Store the last updated timestamp in localStorage
-        console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
-        localStorage.setItem('lastUpdated', lastUpdatedDate);
+    // Store the last updated timestamp in localStorage
+    console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
+    localStorage.setItem('lastUpdated', lastUpdatedDate);
 
-        // Update the UI
-        lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
-    }
+    // Update the UI
+    lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
+}
+
 
     // Function to load the last updated date and time from localStorage
     function loadLastUpdated() {
-        const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
-        const lastUpdatedElement = document.getElementById('lastUpdated');
+    const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
+    const lastUpdatedElement = document.getElementById('lastUpdated');
 
-        if (lastUpdatedFromStorage) {
-            lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
-        } else {
-            // If no timestamp in localStorage, fetch the latest from DB
-            fetchMaterials(); // This will update the UI with the latest data
-        }
+    if (lastUpdatedFromStorage) {
+        lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
+    } else {
+        // If no timestamp in localStorage, fetch the latest from DB
+        fetchMaterials(); // This will update the UI with the latest data
     }
+}
 
-    // Call on page load
-    window.onload = loadLastUpdated;
+// Call on page load
+window.onload = loadLastUpdated;
 
 
 async function fetchMaterials() {
