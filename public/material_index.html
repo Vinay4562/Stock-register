@@ -144,8 +144,6 @@
       </div>      
   </div>
 
-  <div id="successPopup" class="popup-message">Material Added Successfully</div>
-
   <script>
     const materialNameInput = document.getElementById('material-name');
     const materialTypeInput = document.getElementById('material-type');
@@ -407,40 +405,46 @@
     async function addOrUpdateMaterial() {
     const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null;
 
-    const updatedMaterial = {
+    const material = {
         name: materialNameInput.value.trim(),
         type: materialTypeInput.value,
         stock: parseInt(materialStockInput.value, 10) || 0,
         dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
-        remarks: materialRemarksInput.value.trim()
-            ? [{ text: materialRemarksInput.value.trim() }]  // ✅ Ensure remarks is an array of objects
-            : [], // ✅ Send an empty array instead of "Nil"
+        remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim() }] : [],
+        addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(), // Preserve original addedDate
+        lastUpdated: new Date().toISOString() // Update lastUpdated timestamp
     };
 
-    try {
-        const method = existingMaterial ? "PUT" : "POST";
-        const url = existingMaterial 
-            ? `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${existingMaterial._id}`
-            : `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials`;  // ✅ Fixed closing backtick
+    const method = existingMaterial ? "PUT" : "POST";
+    const url = existingMaterial
+        ? `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${existingMaterial._id}`
+        : "https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials";
 
+    try {
         const response = await fetch(url, {
             method,
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updatedMaterial),
+            body: JSON.stringify(material),
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to update: ${await response.text()}`);
+            const errorData = await response.json();
+            throw new Error(`Failed to add/update material: ${errorData.message}`);
         }
 
-        console.log("Material updated successfully.");
-        await fetchMaterials(); // Refresh the data
+        console.log("Material successfully added/updated.");
+        
+        showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully"); // ✅ Success message
 
-        // ✅ Show success popup
-        showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully");
+        await fetchMaterials(); // ✅ Refresh data
+
+        clearForm(); // ✅ Clear form fields
+
+        renderDashboard(calculateSummary(materials)); // ✅ Update dashboard
 
     } catch (error) {
-        console.error("Error updating material:", error);
+        console.error("Error during material add/update:", error);
+        alert("An error occurred while adding/updating the material.");
     }
 }
 
@@ -458,13 +462,23 @@ function showSuccessPopup(message) {
     popup.style.borderRadius = "5px";
     popup.style.zIndex = "1000";
     popup.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
-
+    
     document.body.appendChild(popup);
 
     // Remove popup after 3 seconds
     setTimeout(() => {
         popup.remove();
     }, 3000);
+}
+
+// ✅ Function to clear form fields after submission
+function clearForm() {
+    materialNameInput.value = "";
+    materialTypeInput.value = "";
+    materialStockInput.value = "";
+    materialDispatchedInput.value = "";
+    materialRemarksInput.value = "";
+    editingIndex = -1; // Reset editing state
 }
 
 
@@ -513,16 +527,6 @@ function showSuccessPopup(message) {
         setTimeout(() => {
             popupMessage.style.display = "none";
         }, 1500);
-    }
-
-    // Clear form input fields
-    function clearForm() {
-        materialNameInput.value = '';
-        materialTypeInput.value = '';
-        materialStockInput.value = '';
-        materialDispatchedInput.value = '';
-        materialRemarksInput.value = '';
-        editingIndex = -1;
     }
 
     // Edit material
