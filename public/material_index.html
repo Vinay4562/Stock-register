@@ -351,67 +351,35 @@
 
     // Function to fetch materials from the server
     async function fetchMaterials() {
-    try {
-        const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials', {
-            method: "GET",
-            headers: { "Cache-Control": "no-cache" }  // ✅ Prevents browser caching
-        });
+        try {
+            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
+            if (!response.ok) throw new Error("Failed to fetch materials.");
 
-        if (!response.ok) throw new Error("Failed to fetch materials.");
+            materials = await response.json();
+            
+            console.log("Fetched Materials:", materials);  // ✅ Debugging line
 
-        materials = await response.json();
+            materials.forEach(material => {
+                material.remarks = Array.isArray(material.remarks) 
+                    ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
+                    : [];
 
-        console.log("Fetched Materials:", materials);  // ✅ Debugging: Check fetched data
+                // ✅ Ensure addedDate is formatted correctly
+                material.addedDateFormatted = material.addedDate 
+                    ? formatDate(new Date(material.addedDate))
+                    : "Unknown";
 
-        materials.forEach(material => {
-            material.remarks = Array.isArray(material.remarks) 
-                ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
-                : [];
+                material.lastUpdatedFormatted = material.lastUpdated 
+                    ? formatDate(new Date(material.lastUpdated))
+                    : "Unknown";
+            });
 
-            material.addedDateFormatted = material.addedDate 
-                ? formatDate(new Date(material.addedDate))
-                : "Unknown";
-
-            material.lastUpdatedFormatted = material.lastUpdated 
-                ? formatDate(new Date(material.lastUpdated))
-                : "Unknown";
-        });
-
-        renderStock();
-        renderDashboard(calculateSummary(materials));
-
-        updateLastUpdatedDisplay(); // ✅ Update UI with latest "Last Updated" timestamp
-
-    } catch (error) {
-        console.error("Error fetching materials:", error);
+            renderStock();
+            renderDashboard(calculateSummary(materials));
+        } catch (error) {
+            console.error("Error fetching materials:", error);
+        }
     }
-}
-
-
-function updateLastUpdatedDisplay() {
-    if (materials.length > 0) {
-        const latestMaterial = materials.reduce((latest, current) => 
-            new Date(latest.lastUpdated) > new Date(current.lastUpdated) ? latest : current
-        );
-
-        document.getElementById("lastUpdatedDisplay").innerText = 
-            `Last Updated: ${formatDate(latestMaterial.lastUpdated)}`;
-    } else {
-        document.getElementById("lastUpdatedDisplay").innerText = "No materials available.";
-    }
-}
-
-// ✅ Function to format the date correctly
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    return `${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()} ${date.getHours()}:${date.getMinutes()}`;
-}
-
-document.addEventListener("DOMContentLoaded", async () => {
-    await fetchMaterials(); // ✅ Fetch latest materials on page load
-    updateLastUpdatedDisplay(); // ✅ Ensure latest "Last Updated" is displayed
-});
-
 
     // Calculate summary data for dashboard
     function calculateSummary(materials) {
@@ -442,35 +410,38 @@ document.addEventListener("DOMContentLoaded", async () => {
             type: materialTypeInput.value,
             stock: parseInt(materialStockInput.value, 10) || 0,
             dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
-            remarks: materialRemarksInput.value.trim() ? [materialRemarksInput.value.trim()] : [],
-            addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(),  // Preserve addedDate
-            lastUpdated: new Date().toISOString() // ✅ Always update lastUpdated to current time
+            remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim() }] : [],
+            addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(), // Preserve original addedDate
+            lastUpdated: new Date().toISOString() // Update lastUpdated timestamp
         };
 
-        const endpoint = editingIndex === -1 ? "/api/materials" : `/api/materials/${materials[editingIndex]?._id}`;
-        const method = editingIndex === -1 ? "POST" : "PUT";
+        const method = existingMaterial ? "PUT" : "POST";
+        const url = existingMaterial
+            ? `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${existingMaterial._id}`
+            : "https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials";
 
         try {
-            const response = await fetch(`http://localhost:5000${endpoint}`, {
-                method: method,
+            const response = await fetch(url, {
+                method,
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(material),
             });
 
-            if (response.ok) {
-                const updatedMaterial = await response.json();
-                showMessage(editingIndex === -1 ? "Material added successfully!" : "Material updated successfully!", "success");
-
-                await fetchMaterials(); // ✅ Fetch updated materials after adding/updating
-                updateLastUpdatedDisplay(); // ✅ Update "Last Updated" UI immediately
-
-                clearForm(); // Clear form after success
-
-                renderDashboard(calculateSummary(materials));  // Update the summary with the latest data
-            } else {
+            if (!response.ok) {
                 const errorData = await response.json();
-                alert(`Failed to add/update material: ${errorData.message}`);
+                throw new Error(`Failed to add/update material: ${errorData.message}`);
             }
+
+            console.log("Material successfully added/updated.");
+            
+            showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully"); // ✅ Success message
+
+            await fetchMaterials(); // ✅ Refresh data
+
+            clearForm(); // ✅ Clear form fields
+
+            renderDashboard(calculateSummary(materials)); // ✅ Update dashboard
+
         } catch (error) {
             console.error("Error during material add/update:", error);
             alert("An error occurred while adding/updating the material.");
