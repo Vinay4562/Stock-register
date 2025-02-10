@@ -170,16 +170,15 @@
 
     // Utility function to format date as DD-MM-YYYY HH:mm:ss
     function formatDate(dateString) {
-    if (!dateString) return "Unknown";  // ✅ Handle null values
-    const date = new Date(dateString);
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-    const h = date.getHours().toString().padStart(2, '0');
-    const min = date.getMinutes().toString().padStart(2, '0');
-    return `${d}-${m}-${y} ${h}:${min}`;
-}
-
+        if (!dateString) return "Unknown";  // ✅ Handle null values
+        const date = new Date(dateString);
+        const d = date.getDate().toString().padStart(2, '0');
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const y = date.getFullYear();
+        const h = date.getHours().toString().padStart(2, '0');
+        const min = date.getMinutes().toString().padStart(2, '0');
+        return `${d}-${m}-${y} ${h}:${min}`;
+    }
 
     // Function to update the last updated date and time
     function updateLastUpdated(action) {
@@ -215,55 +214,54 @@
 
     // Render the material stock and summary
     function renderStock(filteredMaterials = materials) {
-    stockList.innerHTML = ''; // Clear table before rendering
+        stockList.innerHTML = ''; // Clear table before rendering
 
-    filteredMaterials.forEach((material, index) => {
-        const { name, type, stock, dispatched, remarks, addedDate, lastUpdated, dispatchHistory } = material;
-        const totalMaterial = stock + dispatched;
+        filteredMaterials.forEach((material, index) => {
+            const { name, type, stock, dispatched, remarks, addedDate, lastUpdated, dispatchHistory } = material;
+            const totalMaterial = stock + dispatched;
 
-        // ✅ Fix: Ensure remarks is an array and all values are strings
-        const displayRemarks = Array.isArray(remarks) && remarks.length > 0
-            ? remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
-            : ["Nil"];
+            // ✅ Fix: Ensure remarks is an array and all values are strings
+            const displayRemarks = Array.isArray(remarks) && remarks.length > 0
+                ? remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
+                : ["Nil"];
 
-        let addedDateFormatted = addedDate ? formatDate(new Date(addedDate)) : "Unknown";
-        let lastUpdatedFormatted = lastUpdated ? formatDate(new Date(lastUpdated)) : "Unknown";
+            let addedDateFormatted = addedDate ? formatDate(new Date(addedDate)) : "Unknown";
+            let lastUpdatedFormatted = lastUpdated ? formatDate(new Date(lastUpdated)) : "Unknown";
 
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>
-                <small style="color: red; font-size: 12px;">Added: ${addedDateFormatted}</small>
-                <br>
-                <strong>${name}</strong>
-                <br>
-                ${dispatchHistory && dispatchHistory.length > 0
-                    ? dispatchHistory.map(d => `
-                        <small style="color: blue; font-size: 12px;">
-                            Dispatched: ${d.quantity} No's, Date: ${formatDate(new Date(d.date))}, 
-                            Remarks: ${d.remarks ? d.remarks : "Nil"}
-                        </small><br>`).join("")
-                    : ""
-                }
-            </td>
-            <td>${type}</td>
-            <td>${stock}</td>
-            <td>${dispatched}</td>
-            <td>${totalMaterial}</td>
-            <td>
-                <ul class="remarks-list">
-                    ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
-                </ul>
-            </td>
-            <td>
-                <button class="edit-btn" onclick="editMaterial(${index})">Edit</button>
-                <button class="delete-btn" onclick="deleteMaterial(${index})">Delete</button>
-            </td>
-        `;
-        stockList.appendChild(row);
-    });
-}
-
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>
+                    <small style="color: red; font-size: 12px;">Added: ${addedDateFormatted}</small>
+                    <br>
+                    <strong>${name}</strong>
+                    <br>
+                    ${dispatchHistory && dispatchHistory.length > 0
+                        ? dispatchHistory.map(d => `
+                            <small style="color: blue; font-size: 12px;">
+                                Dispatched: ${d.quantity} No's, Date: ${formatDate(new Date(d.date))}, 
+                                Remarks: ${d.remarks ? d.remarks : "Nil"}
+                            </small><br>`).join("")
+                        : ""
+                    }
+                </td>
+                <td>${type}</td>
+                <td>${stock}</td>
+                <td>${dispatched}</td>
+                <td>${totalMaterial}</td>
+                <td>
+                    <ul class="remarks-list">
+                        ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                </td>
+                <td>
+                    <button class="edit-btn" onclick="editMaterial(${index})">Edit</button>
+                    <button class="delete-btn" onclick="deleteMaterial(${index})">Delete</button>
+                </td>
+            `;
+            stockList.appendChild(row);
+        });
+    }
 
     // Helper function to create a material row
     function createMaterialRow(material, index) {
@@ -294,41 +292,41 @@
 
     // Render the summary dashboard
     function renderDashboard(summaryMap) {
-    materialSummaryContainer.innerHTML = ''; // Clear existing summary content
-    let serialNumber = 1;
+        materialSummaryContainer.innerHTML = ''; // Clear existing summary content
+        let serialNumber = 1;
 
-    for (const type in summaryMap) {
-        const { totalStock, totalDispatched, totalMaterial, materials } = summaryMap[type];
+        for (const type in summaryMap) {
+            const { totalStock, totalDispatched, totalMaterial, materials } = summaryMap[type];
 
-        const summaryRow = document.createElement('tr');
-        summaryRow.innerHTML = `
-            <td>${serialNumber++}</td>
-            <td>${type}</td>
-            <td>${totalStock}</td>
-            <td>${totalDispatched}</td>
-            <td>${totalMaterial}</td>
-            <td>
-                <ul class="remarks-list">
-                    ${materials.map(material => {
-                        const displayRemarks = Array.isArray(material.remarks) && material.remarks.length > 0
-                            ? material.remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
-                            : ["Nil"];
+            const summaryRow = document.createElement('tr');
+            summaryRow.innerHTML = `
+                <td>${serialNumber++}</td>
+                <td>${type}</td>
+                <td>${totalStock}</td>
+                <td>${totalDispatched}</td>
+                <td>${totalMaterial}</td>
+                <td>
+                    <ul class="remarks-list">
+                        ${materials.map(material => {
+                            const displayRemarks = Array.isArray(material.remarks) && material.remarks.length > 0
+                                ? material.remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
+                                : ["Nil"];
 
-                        return ` 
-                            <li>
-                                ${material.name}: Stock - ${material.stock}, Dispatched - ${material.dispatched}, Total - ${material.stock + material.dispatched}
-                                <ul class="remarks-list">
-                                    ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
-                                </ul>
-                            </li>
-                        `;
-                    }).join('')}
-                </ul>
-            </td>
-        `;
-        materialSummaryContainer.appendChild(summaryRow);
+                            return ` 
+                                <li>
+                                    ${material.name}: Stock - ${material.stock}, Dispatched - ${material.dispatched}, Total - ${material.stock + material.dispatched}
+                                    <ul class="remarks-list">
+                                        ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
+                                    </ul>
+                                </li>
+                            `;
+                        }).join('')}
+                    </ul>
+                </td>
+            `;
+            materialSummaryContainer.appendChild(summaryRow);
+        }
     }
-}
 
     function updateSummaryMap(summaryMap, updatedMaterial) {
         const { type, stock, dispatched, remarks } = updatedMaterial;
@@ -353,36 +351,35 @@
 
     // Function to fetch materials from the server
     async function fetchMaterials() {
-    try {
-        const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
-        if (!response.ok) throw new Error("Failed to fetch materials.");
+        try {
+            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
+            if (!response.ok) throw new Error("Failed to fetch materials.");
 
-        materials = await response.json();
-        
-        console.log("Fetched Materials:", materials);  // ✅ Debugging line
+            materials = await response.json();
+            
+            console.log("Fetched Materials:", materials);  // ✅ Debugging line
 
-        materials.forEach(material => {
-            material.remarks = Array.isArray(material.remarks) 
-                ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
-                : [];
+            materials.forEach(material => {
+                material.remarks = Array.isArray(material.remarks) 
+                    ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
+                    : [];
 
-            // ✅ Ensure addedDate is formatted correctly
-            material.addedDateFormatted = material.addedDate 
-                ? formatDate(new Date(material.addedDate))
-                : "Unknown";
+                // ✅ Ensure addedDate is formatted correctly
+                material.addedDateFormatted = material.addedDate 
+                    ? formatDate(new Date(material.addedDate))
+                    : "Unknown";
 
-            material.lastUpdatedFormatted = material.lastUpdated 
-                ? formatDate(new Date(material.lastUpdated))
-                : "Unknown";
-        });
+                material.lastUpdatedFormatted = material.lastUpdated 
+                    ? formatDate(new Date(material.lastUpdated))
+                    : "Unknown";
+            });
 
-        renderStock();
-        renderDashboard(calculateSummary(materials));
-    } catch (error) {
-        console.error("Error fetching materials:", error);
+            renderStock();
+            renderDashboard(calculateSummary(materials));
+        } catch (error) {
+            console.error("Error fetching materials:", error);
+        }
     }
-}
-
 
     // Calculate summary data for dashboard
     function calculateSummary(materials) {

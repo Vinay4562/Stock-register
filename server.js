@@ -44,19 +44,20 @@ const User = mongoose.model("User", UserSchema);
 
 // ✅ Material Schema with timestamps
 const MaterialSchema = new mongoose.Schema({
-    name: { type: String, required: true, trim: true, maxlength: 100 },
-    type: { type: String, required: true, trim: true, maxlength: 50 },
-    stock: { type: Number, required: true, min: 0 },
-    dispatched: { type: Number, default: 0, min: 0 },
-    remarks: [{ text: String, date: { type: Date, default: Date.now } }],
-    dispatchHistory: [
-        {
-            quantity: { type: Number, required: true, min: 1 },
-            date: { type: Date, default: Date.now },
-            remarks: String
-        }
-    ]
-}, { timestamps: true });  // ✅ Automatically track createdAt and updatedAt
+  name: { type: String, required: true, trim: true, maxlength: 100 },
+  type: { type: String, required: true, trim: true, maxlength: 50 },
+  stock: { type: Number, required: true, min: 0 },
+  dispatched: { type: Number, default: 0, min: 0 },
+  remarks: [{ text: String, date: { type: Date, default: Date.now } }],
+  dispatchHistory: [
+      {
+          quantity: { type: Number, required: true, min: 1 },
+          date: { type: Date, default: Date.now },
+          remarks: String
+      }
+  ],
+  addedDate: { type: Date, default: Date.now },  // ✅ Add this line
+}, { timestamps: true });  // ✅ Automatically tracks createdAt and updatedAt
 
 const Material = mongoose.model("Material", MaterialSchema);
 
