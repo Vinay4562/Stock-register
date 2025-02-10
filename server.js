@@ -87,9 +87,10 @@ app.post('/logout', (req, res) => {
 app.get('/api/materials', isAuthenticated, async (req, res) => {
   try {
     const materials = await Material.find();
-    res.json(materials);
+    res.json(materials);  // Ensure that 'addedDate' is included in the response
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Error fetching materials:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -106,31 +107,53 @@ app.get('/api/last-updated', isAuthenticated, async (req, res) => {
 });
 
 app.post('/api/materials', isAuthenticated, async (req, res) => {
+  const { name, type, stock, remarks } = req.body;
+
   try {
-    const newMaterial = new Material(req.body);
+    const newMaterial = new Material({
+      name,
+      type,
+      stock,
+      dispatched: 0,
+      remarks: remarks || ["Nil"],
+      addedDate: new Date(),  // Ensure addedDate is set to the current date and time
+      lastUpdated: new Date() // Initially set to the same value
+    });
+
     await newMaterial.save();
-    res.json(newMaterial);
+    res.json({ success: true, material: newMaterial });
   } catch (err) {
-    res.status(500).send("Error saving material: " + err.message);
+    console.error("Error adding material:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
 app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
-  const { id } = req.params;
-  const { name, type, stock, dispatched, remarks } = req.body;
+  const { name, type, stock, dispatched, remarks, dispatchHistory } = req.body;
 
   try {
-    const material = await Material.findById(id);
-    material.name = name;
-    material.type = type;
-    material.stock = stock;
-    material.dispatched = dispatched;
-    material.remarks = remarks;
-    material.lastUpdated = Date.now();
-    await material.save();
-    res.json(material);
+      const material = await Material.findById(req.params.id);
+
+      if (!material) {
+          return res.status(404).json({ success: false, message: "Material not found" });
+      }
+
+      // Do NOT change 'addedDate' on updates
+      material.name = name || material.name;
+      material.type = type || material.type;
+      material.stock = stock !== undefined ? stock : material.stock;
+      material.dispatched = dispatched !== undefined ? dispatched : material.dispatched;
+      material.remarks = remarks || material.remarks;
+      material.dispatchHistory = dispatchHistory || material.dispatchHistory;
+      
+      material.lastUpdated = new Date(); // Only update lastUpdated
+
+      await material.save();
+      res.json({ success: true, material });
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+      console.error("Error updating material:", err);
+      res.status(500).json({ success: false, message: err.message });
   }
 });
 
