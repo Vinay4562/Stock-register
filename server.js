@@ -44,17 +44,21 @@ const User = mongoose.model("User", UserSchema);
 
 // ✅ Material Schema with timestamps
 const MaterialSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  type: { type: String, required: true },
-  stock: { type: Number, required: true },
-  dispatched: { type: Number, default: 0 },
-  remarks: [{ text: String }],
-  addedDate: { type: Date, default: Date.now },  // ✅ Ensure Date is stored
-  lastUpdated: { type: Date, default: Date.now }
-});
+    name: { type: String, required: true, trim: true, maxlength: 100 },
+    type: { type: String, required: true, trim: true, maxlength: 50 },
+    stock: { type: Number, required: true, min: 0 },
+    dispatched: { type: Number, default: 0, min: 0 },
+    remarks: [{ text: String, date: { type: Date, default: Date.now } }],
+    dispatchHistory: [
+        {
+            quantity: { type: Number, required: true, min: 1 },
+            date: { type: Date, default: Date.now },
+            remarks: String
+        }
+    ]
+}, { timestamps: true });  // ✅ Automatically track createdAt and updatedAt
 
 const Material = mongoose.model("Material", MaterialSchema);
-module.exports = Material;
 
 const users = [
   { username: 'Shankarpally400kv', password: bcrypt.hashSync('password123', 10) }
