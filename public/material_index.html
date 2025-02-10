@@ -170,14 +170,22 @@
 
     // Utility function to format date as DD-MM-YYYY HH:mm:ss
     function formatDate(date) {
-        const d = date.getDate().toString().padStart(2, '0');
-        const m = (date.getMonth() + 1).toString().padStart(2, '0');
-        const y = date.getFullYear();
-        const h = date.getHours().toString().padStart(2, '0');
-        const min = date.getMinutes().toString().padStart(2, '0');
-        const s = date.getSeconds().toString().padStart(2, '0');
-        return `${d}-${m}-${y} ${h}:${min}:${s}`;
-    }
+    if (!date) return "Unknown"; // ✅ Handle null/undefined
+
+    const parsedDate = new Date(date); // ✅ Convert string to Date
+    if (isNaN(parsedDate)) return "Unknown"; // ✅ Handle invalid date
+
+    const d = parsedDate.getDate().toString().padStart(2, '0');
+    const m = (parsedDate.getMonth() + 1).toString().padStart(2, '0');
+    const y = parsedDate.getFullYear();
+    const h = parsedDate.getHours().toString().padStart(2, '0');
+    const min = parsedDate.getMinutes().toString().padStart(2, '0');
+    const s = parsedDate.getSeconds().toString().padStart(2, '0');
+
+    return `${d}-${m}-${y} ${h}:${min}:${s}`;
+}
+
+
 
     // Function to update the last updated date and time
     function updateLastUpdated(action) {
@@ -357,12 +365,15 @@
 
         materials = await response.json();
 
-        // ✅ Ensure remarks is an array of objects
         materials.forEach(material => {
+            // ✅ Ensure remarks is an array of objects
             material.remarks = Array.isArray(material.remarks) 
                 ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
                 : [];
-            material.lastUpdatedFormatted = formatDate(new Date(material.lastUpdated));
+
+            // ✅ Format both addedDate and lastUpdated
+            material.addedDateFormatted = formatDate(material.addedDate);
+            material.lastUpdatedFormatted = formatDate(material.lastUpdated);
         });
 
         renderStock(); // Refresh table
@@ -371,6 +382,7 @@
         console.error("Error fetching materials:", error);
     }
 }
+
 
     // Calculate summary data for dashboard
     function calculateSummary(materials) {
