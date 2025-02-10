@@ -841,21 +841,25 @@
 
     // Search functionality
     document.getElementById('search-bar').addEventListener('input', function () {
-        const query = this.value.toLowerCase();  // Get search query in lowercase
+    const query = this.value.toLowerCase(); // Get search query in lowercase
 
-        // Filter materials based on the search query
-        const filteredMaterials = materials.filter(
-            material => material.name.toLowerCase().includes(query) ||   // Match material name
-            material.type.toLowerCase().includes(query) ||   // Match material type
-            material.remarks.some(remark => remark.toLowerCase().includes(query))  // Match remarks
-        );
+    // Filter materials based on the search query
+    const filteredMaterials = materials.filter(material => 
+        material.name.toLowerCase().includes(query) ||   // Match material name
+        material.type.toLowerCase().includes(query) ||   // Match material type
+        material.remarks.some(remark => 
+            typeof remark === "object" && remark.text 
+                ? remark.text.toLowerCase().includes(query) 
+                : false
+        ) // Match remarks safely
+    );
 
-        // Render the stock table with filtered materials
-        renderStock(filteredMaterials);
+    // Render the stock table with filtered materials
+    renderStock(filteredMaterials);
 
-        // Recalculate and render the dashboard summary with filtered materials
-        renderDashboard(calculateSummary(filteredMaterials));
-    });
+    // Recalculate and render the dashboard summary with filtered materials
+    renderDashboard(calculateSummary(filteredMaterials));
+});
 
     // Event listeners
     addButton.addEventListener('click', addOrUpdateMaterial);
