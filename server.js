@@ -32,15 +32,32 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("Connected to MongoDB"))
   .catch(err => console.log("MongoDB Connection Error: ", err));
 
-const materialSchema = new mongoose.Schema({
-  name: String,
-  type: String,
-  stock: Number,
-  dispatched: Number,
-  remarks: [String],
-  lastUpdated: { type: Date, default: Date.now },
+  const MaterialSchema = new mongoose.Schema({
+    name: String,
+    type: String,
+    stock: Number,
+    dispatched: Number,
+    remarks: [String],
+    dispatchHistory: [
+        {
+            quantity: Number,
+            date: Date,
+            remarks: String
+        }
+    ],
+    addedDate: {
+        type: Date,
+        default: Date.now, // Set only when the material is created
+        immutable: true  // This prevents the field from being updated
+    },
+    lastUpdated: {
+        type: Date,
+        default: Date.now
+    }
 });
-const Material = mongoose.model('Material', materialSchema);
+
+const Material = mongoose.model("Material", MaterialSchema);
+module.exports = Material;
 
 const users = [
   { username: 'Shankarpally400kv', password: bcrypt.hashSync('password123', 10) }
