@@ -114,8 +114,8 @@ app.post('/logout', (req, res) => {
 // Get materials (GET route)
 app.get('/api/materials', isAuthenticated, async (req, res) => {
   try {
-    const materials = await Material.find();
-    res.json(materials);  // Ensure that 'addedDate' is included in the response
+    const materials = await Material.find();  // Ensure `await` is present
+    res.json(materials);
   } catch (err) {
     console.error("Error fetching materials:", err);
     res.status(500).json({ success: false, message: err.message });
