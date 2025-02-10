@@ -184,9 +184,9 @@
     function updateLastUpdated(action) {
         const now = new Date();
         const formattedDate = formatDate(now);
-        document.getElementById('lastUpdatedTimestamp').textContent = `Last Updated: ${formattedDate} (${action})`;
+        const updateMessage = `Last Updated: ${formattedDate} (${action})`;
+        lastUpdatedElement.textContent = updateMessage;
     }
-
 
     // Function to load the last updated date and time from localStorage
     async function loadLastUpdated() {
@@ -357,30 +357,35 @@
 
     // Function to fetch materials from the server
     async function fetchMaterials() {
-    try {
-        const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials', {
-            method: "GET",
-            headers: { "Cache-Control": "no-cache" } // Prevent caching issues
-        });
+        try {
+            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
+            if (!response.ok) throw new Error("Failed to fetch materials.");
 
-        if (!response.ok) throw new Error("Failed to fetch materials.");
+            materials = await response.json();
+            
+            console.log("Fetched Materials:", materials);  // ✅ Debugging line
 
-        materials = await response.json();
-        console.log("Fetched Updated Materials:", materials);
+            materials.forEach(material => {
+                material.remarks = Array.isArray(material.remarks) 
+                    ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
+                    : [];
 
-        // ✅ Update Last Updated UI
-        if (materials.length > 0) {
-            const latestUpdate = new Date(Math.max(...materials.map(m => new Date(m.lastUpdated))));
-            updateLastUpdated(formatDate(latestUpdate));
+                // ✅ Ensure addedDate is formatted correctly
+                material.addedDateFormatted = material.addedDate 
+                    ? formatDate(new Date(material.addedDate))
+                    : "Unknown";
+
+                material.lastUpdatedFormatted = material.lastUpdated 
+                    ? formatDate(new Date(material.lastUpdated))
+                    : "Unknown";
+            });
+
+            renderStock();
+            renderDashboard(calculateSummary(materials));
+        } catch (error) {
+            console.error("Error fetching materials:", error);
         }
-
-        renderStock();
-        renderDashboard(calculateSummary(materials));
-    } catch (error) {
-        console.error("Error fetching materials:", error);
     }
-}
-
 
     // Calculate summary data for dashboard
     function calculateSummary(materials) {
@@ -413,7 +418,7 @@
             dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
             remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim() }] : [],
             addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(), // Preserve original addedDate
-            lastUpdated: new Date().toISOString() // ✅ Update lastUpdated timestamp
+            lastUpdated: new Date().toISOString() // Update lastUpdated timestamp
         };
 
         const method = existingMaterial ? "PUT" : "POST";
@@ -437,11 +442,11 @@
             
             showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully"); // ✅ Success message
 
-            await fetchMaterials(); // ✅ Ensure materials array updates before dashboard refresh
-            
-            renderDashboard(calculateSummary(materials)); // ✅ Refresh dashboard with updated materials
+            await fetchMaterials(); // ✅ Refresh data
 
             clearForm(); // ✅ Clear form fields
+
+            renderDashboard(calculateSummary(materials)); // ✅ Update dashboard
 
         } catch (error) {
             console.error("Error during material add/update:", error);
@@ -484,53 +489,37 @@
 
     // Delete material
     async function deleteMaterial(index) {
-    const confirmDelete = confirm("Are you sure you want to delete this material?");
-    if (!confirmDelete) return; // Stop if the user cancels
+        const confirmDelete = confirm("Are you sure you want to delete this material?");
+        if (!confirmDelete) return; // Stop if the user cancels
 
-    try {
-        if (!materials || !materials[index]) {
-            alert("Material not found!");
-            return;
-        }
-
-        const id = materials[index]._id;
-        const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${id}`, { 
-            method: "DELETE" 
-        });
-
-        if (response.ok) {
-            const result = await response.json();
-            showMessage("Material deleted successfully!", "delete");
-            fetchMaterials(); // Refresh list
-
-            // ✅ Get latest lastUpdated timestamp from backend response
-            if (result.lastUpdated) {
-                updateLastUpdated(formatDate(new Date(result.lastUpdated)));
-            } else {
-                // Fallback: Use current timestamp
-                updateLastUpdated(formatDate(new Date()));
+        try {
+            if (!materials || !materials[index]) {
+                alert("Material not found!");
+                return;
             }
-        } else {
-            const errorMsg = await response.text();
-            console.error("Failed to delete material:", errorMsg);
-            alert(`Failed to delete material: ${errorMsg}`);
+
+            const id = materials[index]._id;
+            const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${id}`, { 
+                method: "DELETE" 
+            });
+
+            if (response.ok) {
+                showMessage("Material deleted successfully!", "delete");
+                fetchMaterials(); // Refresh list
+
+                // Update last updated timestamp in localStorage
+                const now = new Date();
+                localStorage.setItem('lastUpdated', formatDate(now));
+                updateLastUpdated('Material deleted');
+            } else {
+                const errorMsg = await response.text();
+                console.error("Failed to delete material:", errorMsg);
+                alert(`Failed to delete material: ${errorMsg}`);
+            }
+        } catch (error) {
+            console.error("Error deleting material:", error);
+            alert("An error occurred while deleting the material.");
         }
-    } catch (error) {
-        console.error("Error deleting material:", error);
-        alert("An error occurred while deleting the material.");
-    }
-}
-
-    // Function to show message in popup
-    function showMessage(message, type) {
-        popupText.textContent = message;
-        popupText.className = type; // Add success or delete class for different styles
-        popupMessage.style.display = "flex"; // Show the popup
-
-        // Close the popup after 3 seconds
-        setTimeout(() => {
-            popupMessage.style.display = "none";
-        }, 1500);
     }
 
     // Edit material
@@ -548,13 +537,10 @@
         editMaterialTypeInput.value = material.type;
         editMaterialDispatchedInput.value = ""; // Clear previous dispatched input
 
-        // ✅ Ensure remarks field is empty if there are no valid remarks
-        editMaterialRemarksInput.value = material.remarks && material.remarks.length > 0 
-            ? material.remarks
-                .map(r => (typeof r === "object" && r.text ? r.text : ""))
-                .filter(r => r.trim() !== "") // Remove empty remarks
-                .join(", ") 
-            : ""; // If no remarks, make the field empty
+        // ✅ Properly extract text from remarks
+        editMaterialRemarksInput.value = material.remarks.length > 0 
+            ? material.remarks.map(r => (typeof r === "object" && r.text ? r.text : r)).join(", ") 
+            : ""; // Handle empty remarks properly
 
         editModal.style.display = "block"; // Show modal
     }
@@ -852,25 +838,21 @@
 
     // Search functionality
     document.getElementById('search-bar').addEventListener('input', function () {
-    const query = this.value.toLowerCase(); // Get search query in lowercase
+        const query = this.value.toLowerCase();  // Get search query in lowercase
 
-    // Filter materials based on the search query
-    const filteredMaterials = materials.filter(material => 
-        material.name.toLowerCase().includes(query) ||   // Match material name
-        material.type.toLowerCase().includes(query) ||   // Match material type
-        material.remarks.some(remark => 
-            typeof remark === "object" && remark.text 
-                ? remark.text.toLowerCase().includes(query) 
-                : false
-        ) // Match remarks safely
-    );
+        // Filter materials based on the search query
+        const filteredMaterials = materials.filter(
+            material => material.name.toLowerCase().includes(query) ||   // Match material name
+            material.type.toLowerCase().includes(query) ||   // Match material type
+            material.remarks.some(remark => remark.toLowerCase().includes(query))  // Match remarks
+        );
 
-    // Render the stock table with filtered materials
-    renderStock(filteredMaterials);
+        // Render the stock table with filtered materials
+        renderStock(filteredMaterials);
 
-    // Recalculate and render the dashboard summary with filtered materials
-    renderDashboard(calculateSummary(filteredMaterials));
-});
+        // Recalculate and render the dashboard summary with filtered materials
+        renderDashboard(calculateSummary(filteredMaterials));
+    });
 
     // Event listeners
     addButton.addEventListener('click', addOrUpdateMaterial);
