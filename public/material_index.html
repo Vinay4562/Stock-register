@@ -199,18 +199,24 @@ function updateLastUpdated(action) {
 
 // Function to load the last updated date and time from localStorage
 function loadLastUpdated() {
-    const lastUpdatedElement = document.getElementById('lastUpdated');
-    if (lastUpdatedElement) {
+      const lastUpdatedElement = document.getElementById('last-updated'); // Match the correct ID
+
+      if (lastUpdatedElement) {
         const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
         if (lastUpdatedFromStorage) {
-            lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
+          lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
         } else {
-            console.log('No last updated timestamp found in localStorage.');
+          console.log('No last updated timestamp found in localStorage.');
         }
-    } else {
-        console.error('Element with ID "lastUpdated" not found.');
+      } else {
+        console.error('Element with ID "last-updated" not found.');
+      }
     }
-}
+
+    // Run this function once the page has fully loaded
+    document.addEventListener('DOMContentLoaded', function () {
+      loadLastUpdated();  // Call this when the page is fully loaded
+    });
 
 async function fetchMaterials() {
     try {
