@@ -182,28 +182,36 @@
 
     // Function to update the last updated date and time
     function updateLastUpdated(action) {
-        const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
+    const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
 
-        // Store the last updated timestamp in localStorage
-        localStorage.setItem('lastUpdated', lastUpdatedDate);
+    // Store the last updated timestamp in localStorage
+    console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
+    localStorage.setItem('lastUpdated', lastUpdatedDate);
 
-        // Update the UI
-        lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
-    }
+    // Update the UI
+    lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
+}
+
 
     // Function to load the last updated date and time from localStorage
     function loadLastUpdated() {
-        // Check if a last updated timestamp is stored in localStorage
-        const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
+    // Check if a last updated timestamp is stored in localStorage
+    const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
 
-        if (lastUpdatedFromStorage) {
-            // If available in localStorage, use it
-            lastUpdatedElement.textContent = `Last Updated: ${lastUpdatedFromStorage} (From Local Storage)`;
-        } else {
-            // Fallback to database fetching if not in localStorage
-            fetchLastUpdatedFromDB();
-        }
+    if (lastUpdatedFromStorage) {
+        console.log("Last Updated from localStorage: ", lastUpdatedFromStorage);
+        // If available in localStorage, use it
+        lastUpdatedElement.textContent = `Last Updated: ${lastUpdatedFromStorage}`;
+    } else {
+        console.log("No last updated timestamp found in localStorage, fetching from DB...");
+        fetchLastUpdatedFromDB();
     }
+}
+
+window.onload = function() {
+    loadLastUpdated();  // Ensure we load and display the last updated timestamp
+};
+
 
     async function fetchLastUpdatedFromDB() {
         try {
@@ -228,8 +236,6 @@
         }
     }
 
-    // Call this when the page is loaded
-    loadLastUpdated();
 
     // Render the material stock and summary
     function renderStock(filteredMaterials = materials) {
@@ -422,53 +428,56 @@
     }
 
     async function addOrUpdateMaterial() {
-        const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null;
+    const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null;
 
-        const material = {
-            name: materialNameInput.value.trim(),
-            type: materialTypeInput.value,
-            stock: parseInt(materialStockInput.value, 10) || 0,
-            dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
-            remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim() }] : [],
-            addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(), // Preserve original addedDate
-            lastUpdated: new Date().toISOString() // Update lastUpdated timestamp
-        };
+    const material = {
+        name: materialNameInput.value.trim(),
+        type: materialTypeInput.value,
+        stock: parseInt(materialStockInput.value, 10) || 0,
+        dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
+        remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim() }] : [],
+        addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(),
+        lastUpdated: new Date().toISOString() // Set the current timestamp
+    };
 
-        const method = existingMaterial ? "PUT" : "POST";
-        const url = existingMaterial
-            ? `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${existingMaterial._id}`
-            : "https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials";
+    const method = existingMaterial ? "PUT" : "POST";
+    const url = existingMaterial
+        ? `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${existingMaterial._id}`
+        : "https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials";
 
-        try {
-            const response = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(material),
-            });
+    try {
+        const response = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(material),
+        });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(`Failed to add/update material: ${errorData.message}`);
-            }
-
-            console.log("Material successfully added/updated.");
-
-            showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully");
-
-            await fetchMaterials(); // Refresh data
-
-            clearForm(); // Clear form fields
-
-            renderDashboard(calculateSummary(materials)); // Update dashboard
-
-            // Call to update the last updated timestamp
-            updateLastUpdated(existingMaterial ? "Material Updated" : "Material Added");
-
-        } catch (error) {
-            console.error("Error during material add/update:", error);
-            alert("An error occurred while adding/updating the material.");
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(`Failed to add/update material: ${errorData.message}`);
         }
+
+        console.log("Material successfully added/updated.");
+
+        // Save the last updated timestamp to localStorage
+        const lastUpdatedDate = new Date().toLocaleString();
+        localStorage.setItem('lastUpdated', lastUpdatedDate);
+
+        showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully");
+
+        await fetchMaterials(); // Refresh data
+        clearForm(); // Clear form fields
+        renderDashboard(calculateSummary(materials)); // Update dashboard
+
+        // Call to update the last updated timestamp
+        updateLastUpdated(existingMaterial ? "Material Updated" : "Material Added");
+
+    } catch (error) {
+        console.error("Error during material add/update:", error);
+        alert("An error occurred while adding/updating the material.");
     }
+}
+
 
     // ✅ Function to show success popup
     function showSuccessPopup(message) {
