@@ -55,13 +55,10 @@ app.use(session({
 
 // **MongoDB Connection with Timeout Handling**
 const mongoURI = process.env.MONGODB_URI;
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 10000, 
-})
+mongoose.connect(mongoURI)
   .then(() => console.log("Connected to MongoDB"))
-  .catch(err => console.error("MongoDB Connection Error: ", err));
+  .catch(err => console.log("MongoDB Connection Error: ", err));
+
 
 // **Material Schema & Model**
 const MaterialSchema = new mongoose.Schema({
