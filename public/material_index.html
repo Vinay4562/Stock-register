@@ -195,19 +195,20 @@
 
     // Function to load the last updated date and time from localStorage
     function loadLastUpdated() {
-    const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
     const lastUpdatedElement = document.getElementById('lastUpdated');
 
-    if (lastUpdatedFromStorage) {
-        lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
+    if (lastUpdatedElement) {
+        const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
+        if (lastUpdatedFromStorage) {
+            lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
+        } else {
+            console.log('No last updated timestamp found in localStorage.');
+        }
     } else {
-        // If no timestamp in localStorage, fetch the latest from DB
-        fetchMaterials(); // This will update the UI with the latest data
+        console.error('Element with ID "lastUpdated" not found.');
     }
 }
 
-// Call on page load
-window.onload = loadLastUpdated;
 
 async function fetchMaterials() {
     try {
