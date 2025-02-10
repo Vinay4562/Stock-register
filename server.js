@@ -30,6 +30,10 @@ app.use(session({
   }
 }));
 
+const users = [
+  { username: 'Shankarpally400kv', password: bcrypt.hashSync('password123', 10) }
+];
+
 // MongoDB Connection
 const mongoURI = process.env.MONGODB_URI;
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
