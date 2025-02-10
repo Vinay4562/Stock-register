@@ -228,6 +228,9 @@
         }
     }
 
+    // Call this when the page is loaded
+    loadLastUpdated();
+
     // Render the material stock and summary
     function renderStock(filteredMaterials = materials) {
         stockList.innerHTML = ''; // Clear table before rendering
