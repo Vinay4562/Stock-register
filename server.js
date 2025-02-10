@@ -10,71 +10,88 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const app = express();
+
+// Middleware
 app.use(express.json());
 app.use(cors({
   origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true // Allows session cookies to be sent with requests
+  credentials: true 
 }));
-app.use(morgan('dev')); // Logging middleware
+app.use(morgan('dev')); 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Rate limiting to prevent excessive API calls
+// Rate Limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // Limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000, 
+  max: 100 
 });
 app.use('/api/', limiter);
 
-// Session setup
+// **Timeout Middleware** (Prevents Long Requests)
+app.use((req, res, next) => {
+  res.setTimeout(15000, () => { // 15 seconds
+    res.status(504).json({ error: "Request timed out" });
+  });
+  next();
+});
+
+// **Session Setup**
 app.use(session({
   secret: process.env.SESSION_SECRET || 'chantichitti2255@',
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI, // Your MongoDB connection string
-    collectionName: 'sessions', // (Optional) Store sessions in a specific collection
-    ttl: 14 * 24 * 60 * 60 // (Optional) Sessions expire in 14 days
+    mongoUrl: process.env.MONGODB_URI, 
+    collectionName: 'sessions', 
+    ttl: 14 * 24 * 60 * 60 
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Set to true in production
+    secure: process.env.NODE_ENV === 'production', 
     httpOnly: true,
     sameSite: 'strict'
   }
 }));
 
+// **MongoDB Connection with Timeout Handling**
 const mongoURI = process.env.MONGODB_URI;
-mongoose.connect(mongoURI)
+mongoose.connect(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 10000, 
+})
   .then(() => console.log("Connected to MongoDB"))
-  .catch(err => console.log("MongoDB Connection Error: ", err));
+  .catch(err => console.error("MongoDB Connection Error: ", err));
 
-  const MaterialSchema = new mongoose.Schema({
-    name: String,
-    type: String,
-    stock: Number,
-    dispatched: Number,
-    remarks: [String],
-    dispatchHistory: [
-        {
-            quantity: Number,
-            date: Date,
-            remarks: String
-        }
-    ],
-    addedDate: {
-        type: Date,
-        default: Date.now, // Set only when the material is created
-        immutable: true  // This prevents the field from being updated
-    },
-    lastUpdated: {
-        type: Date,
-        default: Date.now
+// **Material Schema & Model**
+const MaterialSchema = new mongoose.Schema({
+  name: String,
+  type: String,
+  stock: Number,
+  dispatched: Number,
+  remarks: [String],
+  dispatchHistory: [
+    {
+      quantity: Number,
+      date: Date,
+      remarks: String
     }
+  ],
+  addedDate: {
+    type: Date,
+    default: Date.now,
+    immutable: true  
+  },
+  lastUpdated: {
+    type: Date,
+    default: Date.now
+  }
 });
 
 const Material = mongoose.model("Material", MaterialSchema);
 module.exports = Material;
-  
+
+// **User Authentication**
 const users = [
   { username: 'Shankarpally400kv', password: bcrypt.hashSync('password123', 10) }
 ];
@@ -111,18 +128,17 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// Get materials (GET route)
-app.get('/api/materials', isAuthenticated, async (req, res) => {
+// **Material API Routes**
+app.get('/api/materials', isAuthenticated, async (req, res, next) => {
   try {
-    const materials = await Material.find();  // Ensure `await` is present
+    const materials = await Material.find().lean();
     res.json(materials);
   } catch (err) {
-    console.error("Error fetching materials:", err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 });
 
-app.get('/api/last-updated', isAuthenticated, async (req, res) => {
+app.get('/api/last-updated', isAuthenticated, async (req, res, next) => {
   try {
     const lastUpdated = await Material.findOne({}, {}, { sort: { lastUpdated: -1 } }).select('lastUpdated');
     if (!lastUpdated) {
@@ -130,11 +146,11 @@ app.get('/api/last-updated', isAuthenticated, async (req, res) => {
     }
     res.json({ lastUpdated: lastUpdated.lastUpdated });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
+    next(error);
   }
 });
 
-app.post('/api/materials', isAuthenticated, async (req, res) => {
+app.post('/api/materials', isAuthenticated, async (req, res, next) => {
   const { name, type, stock, remarks } = req.body;
 
   try {
@@ -144,56 +160,57 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
       stock,
       dispatched: 0,
       remarks: remarks || ["Nil"],
-      addedDate: new Date(),  // Ensure addedDate is set to the current date and time
-      lastUpdated: new Date() // Initially set to the same value
+      addedDate: new Date(), 
+      lastUpdated: new Date()
     });
 
     await newMaterial.save();
     res.json({ success: true, material: newMaterial });
   } catch (err) {
-    console.error("Error adding material:", err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 });
 
-app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
+app.put('/api/materials/:id', isAuthenticated, async (req, res, next) => {
   const { name, type, stock, dispatched, remarks, dispatchHistory } = req.body;
 
   try {
-      const material = await Material.findById(req.params.id);
+    const material = await Material.findById(req.params.id);
+    if (!material) {
+      return res.status(404).json({ success: false, message: "Material not found" });
+    }
 
-      if (!material) {
-          return res.status(404).json({ success: false, message: "Material not found" });
-      }
+    material.name = name || material.name;
+    material.type = type || material.type;
+    material.stock = stock !== undefined ? stock : material.stock;
+    material.dispatched = dispatched !== undefined ? dispatched : material.dispatched;
+    material.remarks = remarks || material.remarks;
+    material.dispatchHistory = dispatchHistory || material.dispatchHistory;
+    material.lastUpdated = new Date(); 
 
-      // Do NOT change 'addedDate' on updates
-      material.name = name || material.name;
-      material.type = type || material.type;
-      material.stock = stock !== undefined ? stock : material.stock;
-      material.dispatched = dispatched !== undefined ? dispatched : material.dispatched;
-      material.remarks = remarks || material.remarks;
-      material.dispatchHistory = dispatchHistory || material.dispatchHistory;
-      
-      material.lastUpdated = new Date(); // Only update lastUpdated
-
-      await material.save();
-      res.json({ success: true, material });
-
+    await material.save();
+    res.json({ success: true, material });
   } catch (err) {
-      console.error("Error updating material:", err);
-      res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 });
 
-app.delete('/api/materials/:id', isAuthenticated, async (req, res) => {
+app.delete('/api/materials/:id', isAuthenticated, async (req, res, next) => {
   try {
     await Material.findByIdAndDelete(req.params.id);
     res.json({ message: "Material deleted" });
   } catch (err) {
-    res.status(500).send("Error deleting material: " + err.message);
+    next(err);
   }
 });
 
+// **Global Error Handling Middleware**
+app.use((err, req, res, next) => {
+  console.error("Internal Server Error:", err);
+  res.status(500).json({ success: false, message: "Internal Server Error" });
+});
+
+// **Start Server**
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
