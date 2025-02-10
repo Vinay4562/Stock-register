@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const cors = require('cors');
 const path = require('path');
 const morgan = require('morgan');
@@ -12,7 +12,7 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:3000', // Frontend URL
+  origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true // Allows session cookies to be sent with requests
 }));
@@ -76,7 +76,7 @@ const Material = mongoose.model("Material", MaterialSchema);
 module.exports = Material;
   
 const users = [
-  { username: 'admin', password: bcrypt.hashSync('password123', 10) }
+  { username: 'Shankarpally400kv', password: bcrypt.hashSync('password123', 10) }
 ];
 
 app.post('/login', async (req, res) => {
