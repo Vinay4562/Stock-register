@@ -403,8 +403,8 @@
         stock: parseInt(materialStockInput.value, 10) || 0,
         dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
         remarks: materialRemarksInput.value.trim()
-            ? [{ text: materialRemarksInput.value.trim() }]  // ✅ Sending remarks as an array of objects
-            : [], // ✅ If empty, send an empty array
+            ? [{ text: materialRemarksInput.value.trim() }]  // ✅ Ensure remarks is an array of objects
+            : [], // ✅ Send an empty array instead of "Nil"
     };
 
     try {
@@ -429,6 +429,7 @@
         console.error("Error updating material:", error);
     }
 }
+
 
     // Delete material
     async function deleteMaterial(index) {
