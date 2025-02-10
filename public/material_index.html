@@ -182,6 +182,7 @@ function formatDate(dateString) {
 }
 
 // Function to update the last updated date and time
+// Function to update the last updated date and time
 function updateLastUpdated(action) {
     const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
     console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
@@ -189,30 +190,30 @@ function updateLastUpdated(action) {
     // Store the last updated timestamp in localStorage
     localStorage.setItem('lastUpdated', lastUpdatedDate);
 
-    const lastUpdatedElement = document.getElementById('lastUpdated');
+    const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
     if (lastUpdatedElement) {
         // Update the UI
         lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
     } else {
-        console.error('Element with ID "lastUpdated" not found.');
+        console.error('Element with ID "last-updated" not found.');
     }
 }
 
 // Function to load the last updated date and time from localStorage
 function loadLastUpdated() {
-      const lastUpdatedElement = document.getElementById('last-updated'); // Match the correct ID
+    const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
 
-      if (lastUpdatedElement) {
+    if (lastUpdatedElement) {
         const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
         if (lastUpdatedFromStorage) {
-          lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
+            lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
         } else {
-          console.log('No last updated timestamp found in localStorage.');
+            console.log('No last updated timestamp found in localStorage.');
         }
-      } else {
+    } else {
         console.error('Element with ID "last-updated" not found.');
-      }
     }
+}
 
     // Run this function once the page has fully loaded
     document.addEventListener('DOMContentLoaded', function () {
