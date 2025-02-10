@@ -402,7 +402,6 @@
         return summaryMap;
     }
 
-    // Add or update material
     async function addOrUpdateMaterial() {
     const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null;
 
@@ -420,7 +419,7 @@
         const method = existingMaterial ? "PUT" : "POST";
         const url = existingMaterial 
             ? `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${existingMaterial._id}`
-            : "https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials";
+            : `https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials`;  // ✅ Fixed closing backtick
 
         const response = await fetch(url, {
             method,
@@ -434,9 +433,36 @@
 
         console.log("Material updated successfully.");
         await fetchMaterials(); // Refresh the data
+
+        // ✅ Show success popup
+        showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully");
+
     } catch (error) {
         console.error("Error updating material:", error);
     }
+}
+
+// ✅ Function to show success popup
+function showSuccessPopup(message) {
+    const popup = document.createElement("div");
+    popup.innerText = message;
+    popup.style.position = "fixed";
+    popup.style.top = "20px";
+    popup.style.left = "50%";
+    popup.style.transform = "translateX(-50%)";
+    popup.style.backgroundColor = "#4CAF50";
+    popup.style.color = "#fff";
+    popup.style.padding = "10px 20px";
+    popup.style.borderRadius = "5px";
+    popup.style.zIndex = "1000";
+    popup.style.boxShadow = "0 4px 8px rgba(0, 0, 0, 0.2)";
+
+    document.body.appendChild(popup);
+
+    // Remove popup after 3 seconds
+    setTimeout(() => {
+        popup.remove();
+    }, 3000);
 }
 
 
