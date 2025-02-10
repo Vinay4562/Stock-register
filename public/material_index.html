@@ -184,9 +184,9 @@
     function updateLastUpdated(action) {
         const now = new Date();
         const formattedDate = formatDate(now);
-        const updateMessage = `Last Updated: ${formattedDate} (${action})`;
-        lastUpdatedElement.textContent = updateMessage;
+        document.getElementById('lastUpdatedTimestamp').textContent = `Last Updated: ${formattedDate} (${action})`;
     }
+
 
     // Function to load the last updated date and time from localStorage
     async function loadLastUpdated() {
@@ -357,29 +357,30 @@
 
     // Function to fetch materials from the server
     async function fetchMaterials() {
-        try {
-            const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials', {
-                method: "GET",
-                headers: { "Cache-Control": "no-cache" } // Prevent caching issues
-            });
+    try {
+        const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials', {
+            method: "GET",
+            headers: { "Cache-Control": "no-cache" } // Prevent caching issues
+        });
 
-            if (!response.ok) throw new Error("Failed to fetch materials.");
+        if (!response.ok) throw new Error("Failed to fetch materials.");
 
-            materials = await response.json();
-            console.log("Fetched Updated Materials:", materials);
+        materials = await response.json();
+        console.log("Fetched Updated Materials:", materials);
 
-            // ✅ Update Last Updated UI
-            if (materials.length > 0) {
-                const latestUpdate = new Date(Math.max(...materials.map(m => new Date(m.lastUpdated))));
-                updateLastUpdated(formatDate(latestUpdate));
-            }
-
-            renderStock();
-            renderDashboard(calculateSummary(materials));
-        } catch (error) {
-            console.error("Error fetching materials:", error);
+        // ✅ Update Last Updated UI
+        if (materials.length > 0) {
+            const latestUpdate = new Date(Math.max(...materials.map(m => new Date(m.lastUpdated))));
+            updateLastUpdated(formatDate(latestUpdate));
         }
+
+        renderStock();
+        renderDashboard(calculateSummary(materials));
+    } catch (error) {
+        console.error("Error fetching materials:", error);
     }
+}
+
 
     // Calculate summary data for dashboard
     function calculateSummary(materials) {
@@ -483,38 +484,43 @@
 
     // Delete material
     async function deleteMaterial(index) {
-        const confirmDelete = confirm("Are you sure you want to delete this material?");
-        if (!confirmDelete) return; // Stop if the user cancels
+    const confirmDelete = confirm("Are you sure you want to delete this material?");
+    if (!confirmDelete) return; // Stop if the user cancels
 
-        try {
-            if (!materials || !materials[index]) {
-                alert("Material not found!");
-                return;
-            }
-
-            const id = materials[index]._id;
-            const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${id}`, { 
-                method: "DELETE" 
-            });
-
-            if (response.ok) {
-                showMessage("Material deleted successfully!", "delete");
-                fetchMaterials(); // Refresh list
-
-                // Update last updated timestamp in localStorage
-                const now = new Date();
-                localStorage.setItem('lastUpdated', formatDate(now));
-                updateLastUpdated('Material deleted');
-            } else {
-                const errorMsg = await response.text();
-                console.error("Failed to delete material:", errorMsg);
-                alert(`Failed to delete material: ${errorMsg}`);
-            }
-        } catch (error) {
-            console.error("Error deleting material:", error);
-            alert("An error occurred while deleting the material.");
+    try {
+        if (!materials || !materials[index]) {
+            alert("Material not found!");
+            return;
         }
+
+        const id = materials[index]._id;
+        const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${id}`, { 
+            method: "DELETE" 
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            showMessage("Material deleted successfully!", "delete");
+            fetchMaterials(); // Refresh list
+
+            // ✅ Get latest lastUpdated timestamp from backend response
+            if (result.lastUpdated) {
+                updateLastUpdated(formatDate(new Date(result.lastUpdated)));
+            } else {
+                // Fallback: Use current timestamp
+                updateLastUpdated(formatDate(new Date()));
+            }
+        } else {
+            const errorMsg = await response.text();
+            console.error("Failed to delete material:", errorMsg);
+            alert(`Failed to delete material: ${errorMsg}`);
+        }
+    } catch (error) {
+        console.error("Error deleting material:", error);
+        alert("An error occurred while deleting the material.");
     }
+}
+
 
     // Edit material
     function editMaterial(index) {

@@ -187,10 +187,11 @@ app.delete('/api/materials/:id', isAuthenticated, async (req, res) => {
           return res.status(404).json({ success: false, message: "Material not found" });
       }
 
-      // Update the last updated timestamp for dashboard tracking
-      await Material.updateMany({}, { $set: { lastUpdated: new Date() } });
+      // Update the last updated timestamp for tracking latest modification
+      const latestUpdate = new Date();
+      await Material.updateMany({}, { $set: { lastUpdated: latestUpdate } });
 
-      res.json({ success: true, message: "Material deleted successfully" });
+      res.json({ success: true, message: "Material deleted successfully", lastUpdated: latestUpdate });
   } catch (err) {
       console.error("Error deleting material:", err);
       res.status(500).json({ success: false, message: err.message });
