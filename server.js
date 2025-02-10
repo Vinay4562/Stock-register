@@ -20,7 +20,6 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
 app.use(morgan('dev')); // Logging middleware
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -43,12 +42,12 @@ app.use(session({
   }
 }));
 
-const mongoURI = process.env.MONGODB_URI;
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+// MongoDB connection using environment variable
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log("Connected to MongoDB"))
   .catch(err => console.log("MongoDB Connection Error: ", err));
 
-  const MaterialSchema = new mongoose.Schema({
+const MaterialSchema = new mongoose.Schema({
     name: String,
     type: String,
     stock: Number,
@@ -63,8 +62,8 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     ],
     addedDate: {
         type: Date,
-        default: Date.now, // Set only when the material is created
-        immutable: true  // This prevents the field from being updated
+        default: Date.now,
+        immutable: true
     },
     lastUpdated: {
         type: Date,
@@ -111,7 +110,6 @@ app.post('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) return res.status(500).json({ message: 'Logout failed' });
 
-    // Clear the cache and disable back navigation
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.json({ success: true, redirect: '/login.html' });
   });
@@ -120,7 +118,7 @@ app.post('/logout', (req, res) => {
 app.get('/api/materials', isAuthenticated, async (req, res) => {
   try {
     const materials = await Material.find();
-    res.json(materials);  // Ensure that 'addedDate' is included in the response
+    res.json(materials);
   } catch (err) {
     console.error("Error fetching materials:", err);
     res.status(500).json({ success: false, message: err.message });
@@ -149,8 +147,8 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
       stock,
       dispatched: 0,
       remarks: remarks || ["Nil"],
-      addedDate: new Date(),  // Ensure addedDate is set to the current date and time
-      lastUpdated: new Date() // Initially set to the same value
+      addedDate: new Date(),
+      lastUpdated: new Date()
     });
 
     await newMaterial.save();
@@ -171,7 +169,6 @@ app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
           return res.status(404).json({ success: false, message: "Material not found" });
       }
 
-      // Do NOT change 'addedDate' on updates
       material.name = name || material.name;
       material.type = type || material.type;
       material.stock = stock !== undefined ? stock : material.stock;
@@ -179,7 +176,7 @@ app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
       material.remarks = remarks || material.remarks;
       material.dispatchHistory = dispatchHistory || material.dispatchHistory;
       
-      material.lastUpdated = new Date(); // Only update lastUpdated
+      material.lastUpdated = new Date();
 
       await material.save();
       res.json({ success: true, material });
