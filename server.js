@@ -13,11 +13,11 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ✅ **CORS Setup**
+// ✅ **CORS Setup (Allow Credentials)**
 const corsOptions = {
   origin: ['http://localhost:8000', 'https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true
+  credentials: true // ✅ Allows session cookies
 };
 app.use(cors(corsOptions));
 
@@ -39,7 +39,6 @@ mongoose.connect(mongoURI, {
 }).then(() => console.log("✅ Connected to MongoDB"))
   .catch(err => console.error("❌ MongoDB Connection Error:", err));
 
-
 // ✅ **Use `connect-mongo` for Session Storage**
 app.use(session({
   secret: process.env.SESSION_SECRET || 'chantichitti2255@',
@@ -50,9 +49,9 @@ app.use(session({
     ttl: 14 * 24 * 60 * 60 // Save sessions for 14 days
   }),
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production', // ✅ Secure only in production
     httpOnly: true,
-    sameSite: 'strict'
+    sameSite: 'lax' // ✅ Allows session persistence
   }
 }));
 
@@ -78,8 +77,6 @@ const MaterialSchema = new mongoose.Schema({
     default: Date.now
   }
 });
-
-// ✅ **Create Index for Faster Queries**
 MaterialSchema.index({ name: 1 });
 const Material = mongoose.model("Material", MaterialSchema);
 
@@ -89,7 +86,6 @@ const users = [{ username: 'Shankarpally400kv', password: bcrypt.hashSync('passw
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const user = users.find(u => u.username === username);
-
   if (user && await bcrypt.compare(password, user.password)) {
     req.session.user = username;
     res.json({ success: true, redirect: '/material_index.html' });
@@ -119,7 +115,7 @@ app.post('/logout', (req, res) => {
   });
 });
 
-// ✅ **Fetch Materials (Optimized)**
+// ✅ **Fetch Materials (Fix Session Issues)**
 app.get('/api/materials', isAuthenticated, async (req, res) => {
   try {
     const materials = await Material.find().select("name stock lastUpdated").limit(100);
@@ -164,20 +160,9 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
 
 // ✅ **Update Material**
 app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
-  const { name, type, stock, dispatched, remarks, dispatchHistory } = req.body;
   try {
-    const material = await Material.findById(req.params.id);
+    const material = await Material.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!material) return res.status(404).json({ success: false, message: "Material not found" });
-
-    material.name = name || material.name;
-    material.type = type || material.type;
-    material.stock = stock !== undefined ? stock : material.stock;
-    material.dispatched = dispatched !== undefined ? dispatched : material.dispatched;
-    material.remarks = remarks || material.remarks;
-    material.dispatchHistory = dispatchHistory || material.dispatchHistory;
-    material.lastUpdated = new Date();
-
-    await material.save();
     res.json({ success: true, material });
   } catch (err) {
     console.error("❌ Error updating material:", err);
