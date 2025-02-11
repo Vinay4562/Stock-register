@@ -397,6 +397,7 @@
 
             renderStock();
             renderDashboard(calculateSummary(materials));
+            localStorage.setItem('lastUpdated', formatDate(now));
             loadLastUpdated();
         } catch (error) {
             console.error("Error fetching materials:", error);
