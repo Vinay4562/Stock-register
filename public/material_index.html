@@ -223,6 +223,40 @@ function loadLastUpdated() {
     }
 }
 
+// Function to format the date into a more readable format
+function formatDate(date) {
+    const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        hour: 'numeric', 
+        minute: 'numeric', 
+        second: 'numeric',
+        hour12: true 
+    };
+    return new Intl.DateTimeFormat('en-US', options).format(date);
+}
+
+// Function to update the last updated timestamp in the dashboard
+function updateLastUpdatedOnLoad() {
+    const lastUpdated = localStorage.getItem('lastUpdated');
+    const lastUpdatedElement = document.getElementById("lastUpdated");
+
+    if (lastUpdated && lastUpdatedElement) {
+        // Convert the ISO string to a Date object
+        const lastUpdatedDate = new Date(lastUpdated);
+        // Format the date and display it
+        lastUpdatedElement.textContent = `Last Updated: ${formatDate(lastUpdatedDate)}`;
+    } else {
+        // If no last updated timestamp, display a default message
+        if (lastUpdatedElement) {
+            lastUpdatedElement.textContent = "No updates available.";
+        }
+    }
+}
+
+// Call the function on page load to update the last updated info
+window.addEventListener('load', updateLastUpdatedOnLoad);
 
 
     function updateLastUpdatedOnUI(latestLastUpdated) {
