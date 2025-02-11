@@ -157,7 +157,7 @@
     const popupMessage = document.getElementById('popup-message');
     const popupText = document.getElementById('popup-text');
     const popupClose = document.getElementById('popup-close');
-    const lastUpdatedElement = document.getElementById('last-updated');
+    const lastUpdatedElement = document.getElementById('lastUpdated');
     const editMaterialTypeInput = document.getElementById('edit-material-type');
     const editMaterialNameInput = document.getElementById('edit-material-name');
     const editMaterialDispatchedInput = document.getElementById('edit-material-dispatched');
@@ -189,12 +189,12 @@
         // Store the last updated timestamp in localStorage
         localStorage.setItem('lastUpdated', lastUpdatedDate);
 
-        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
+        const lastUpdatedElement = document.getElementById('lastUpdated'); // Corrected ID
         if (lastUpdatedElement) {
             // Update the UI
             lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
         } else {
-            console.error('Element with ID "last-updated" not found.');
+            console.error('Element with ID "lastUpdated" not found.');
         }
     }
 
