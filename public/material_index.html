@@ -376,42 +376,63 @@
 });
 
 async function fetchMaterials() {
-     try {
-         const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
-         if (!response.ok) throw new Error("Failed to fetch materials.");
+    try {
+        const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
+        if (!response.ok) throw new Error("Failed to fetch materials.");
 
-         materials = await response.json();
-         
-         console.log("Fetched Materials:", materials);
+        materials = await response.json();
+        
+        console.log("Fetched Materials:", materials);  // ✅ Debugging line
 
-         materials.forEach(material => {
-             material.remarks = Array.isArray(material.remarks) 
-                 ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
-                 : [];
+        // Initialize the variable to hold the most recent date
+        let mostRecentDate = null;
 
-             material.addedDateFormatted = material.addedDate 
-                 ? formatDate(new Date(material.addedDate))
-                 : "Unknown";
+        materials.forEach(material => {
+            material.remarks = Array.isArray(material.remarks) 
+                ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
+                : [];
 
-             material.lastUpdatedFormatted = material.lastUpdated 
-                 ? formatDate(new Date(material.lastUpdated))
-                 : "Unknown";
+            // ✅ Ensure addedDate is formatted correctly
+            material.addedDateFormatted = material.addedDate 
+                ? formatDate(new Date(material.addedDate))
+                : "Unknown";
 
-             // Store last updated timestamp in localStorage
-             if (material.lastUpdated) {
-                 localStorage.setItem('lastUpdated', material.lastUpdated);
-             }
-         });
+            material.lastUpdatedFormatted = material.lastUpdated 
+                ? formatDate(new Date(material.lastUpdated))
+                : "Unknown";
 
-         renderStock();
-         renderDashboard(calculateSummary(materials));
-         
-         // Call loadLastUpdated to update the timestamp on the dashboard
-         loadLastUpdated();
-     } catch (error) {
-         console.error("Error fetching materials:", error);
-     }
- }
+            // Update mostRecentDate if this material's lastUpdated is more recent
+            if (material.lastUpdated) {
+                const materialLastUpdated = new Date(material.lastUpdated);
+                if (!mostRecentDate || materialLastUpdated > mostRecentDate) {
+                    mostRecentDate = materialLastUpdated;
+                }
+            }
+        });
+
+        // Format the most recent date to display
+        const formattedMostRecentDate = mostRecentDate 
+            ? formatDate(mostRecentDate) 
+            : "No updates available";
+
+        // Call the dashboard render function to display the most recent activity date
+        renderStock();
+        renderDashboard(calculateSummary(materials));
+
+        // Display the most recent update date and time in the dashboard
+        const lastUpdatedElement = document.getElementById("lastUpdated");
+        if (lastUpdatedElement) {
+            lastUpdatedElement.textContent = `Last Updated: ${formattedMostRecentDate}`;
+        }
+    } catch (error) {
+        console.error("Error fetching materials:", error);
+    }
+}
+
+// Helper function for formatting dates
+function formatDate(date) {
+    return date.toLocaleString(); // Simple format: "MM/DD/YYYY, HH:MM:SS"
+}
 
 
     // Calculate summary data for dashboard
