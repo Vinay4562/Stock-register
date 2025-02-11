@@ -398,8 +398,12 @@
         renderStock();
         renderDashboard(calculateSummary(materials));
 
-        // Define 'now' as the current date/time
-        const now = new Date();
+        // Get the most recent `lastUpdated` value from materials (if available)
+        const latestMaterial = materials.reduce((latest, current) => {
+            return new Date(current.lastUpdated) > new Date(latest.lastUpdated) ? current : latest;
+        }, { lastUpdated: "1970-01-01T00:00:00Z" });
+
+        const now = new Date(latestMaterial.lastUpdated);
         localStorage.setItem('lastUpdated', formatDate(now));
         loadLastUpdated();
     } catch (error) {
