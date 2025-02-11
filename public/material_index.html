@@ -171,34 +171,19 @@
     let editingIndex = -1;
 
     // Utility function to format date as DD-MM-YYYY HH:mm:ss
-    // Format date for display
-function formatDate(dateString) {
-    if (!dateString) return "Unknown";  // Handle null values
-    const date = new Date(dateString);
-    const d = date.getDate().toString().padStart(2, '0');
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const y = date.getFullYear();
-    const h = date.getHours().toString().padStart(2, '0');
-    const min = date.getMinutes().toString().padStart(2, '0');
-    return `${d}-${m}-${y} ${h}:${min}`;
-}
-
-// Update the last updated timestamp
-function updateLastUpdated(action) {
-    const lastUpdatedDate = new Date().toLocaleString();
-    console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
-
-    localStorage.setItem('lastUpdated', lastUpdatedDate);
-
-    const lastUpdatedElement = document.getElementById('last-updated');
-    if (lastUpdatedElement) {
-        lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
-    } else {
-        console.error('Element with ID "last-updated" not found.');
+    function formatDate(dateString) {
+        if (!dateString) return "Unknown";  // ✅ Handle null values
+        const date = new Date(dateString);
+        const d = date.getDate().toString().padStart(2, '0');
+        const m = (date.getMonth() + 1).toString().padStart(2, '0');
+        const y = date.getFullYear();
+        const h = date.getHours().toString().padStart(2, '0');
+        const min = date.getMinutes().toString().padStart(2, '0');
+        return `${d}-${m}-${y} ${h}:${min}`;
     }
-}
 
-// Load the last updated timestamp from localStorage
+    // Function to update the last updated date and time
+ // Load the last updated timestamp from localStorage
 function loadLastUpdated() {
     const lastUpdatedLabel = document.getElementById('lastUpdatedLabel');
     const lastUpdated = localStorage.getItem('lastUpdated');
@@ -215,58 +200,102 @@ function loadLastUpdated() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    loadLastUpdated();  // Load last updated timestamp when the page is loaded
-});
+// Update the last updated timestamp when actual changes occur (add/edit/delete)
+function updateLastUpdated(action) {
+    const lastUpdatedDate = new Date().toLocaleString();
+    console.log(`${action} - Updating Last Updated timestamp to: `, lastUpdatedDate);
 
-// Update last updated timestamp on UI
-function updateLastUpdatedOnUI(latestLastUpdated) {
-    const lastUpdatedElement = document.getElementById('lastUpdated');
-    const formattedDate = new Date(latestLastUpdated).toLocaleString();
+    localStorage.setItem('lastUpdated', lastUpdatedDate); // Save the updated time
+
+    const lastUpdatedElement = document.getElementById('last-updated');
     if (lastUpdatedElement) {
-        lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
+        lastUpdatedElement.textContent = `Last Updated: ${lastUpdatedDate}`;
     } else {
-        console.error('Element with ID "lastUpdated" not found.');
+        console.error('Element with ID "last-updated" not found.');
     }
 }
 
-// Save last updated timestamp to localStorage
-function saveLastUpdatedToLocalStorage(latestLastUpdated) {
-    localStorage.setItem('lastUpdated', latestLastUpdated);
-}
 
-// Render stock table with filtered materials
-function renderStock(filteredMaterials = materials) {
-    stockList.innerHTML = ''; // Clear table before rendering
+    // Run this function once the page has fully loaded
+    document.addEventListener('DOMContentLoaded', function () {
+      loadLastUpdated();  // Call this when the page is fully loaded
+    });
 
-    filteredMaterials.forEach((material, index) => {
-        const { name, type, stock, dispatched, remarks, addedDate, lastUpdated, dispatchHistory } = material;
+    function updateLastUpdatedOnUI(latestLastUpdated) {
+        const lastUpdatedElement = document.getElementById('lastUpdated'); // Assuming you have an element with this ID to show the timestamp
+        const formattedDate = new Date(latestLastUpdated).toLocaleString(); // Format the date in a user-friendly format
+        if (lastUpdatedElement) {
+            lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
+        } else {
+            console.error('Element with ID "lastUpdated" not found.');
+        }
+    }
+
+    function saveLastUpdatedToLocalStorage(latestLastUpdated) {
+        localStorage.setItem('lastUpdated', latestLastUpdated);
+    }
+
+    // Render the material stock and summary
+    function renderStock(filteredMaterials = materials) {
+        stockList.innerHTML = ''; // Clear table before rendering
+
+        filteredMaterials.forEach((material, index) => {
+            const { name, type, stock, dispatched, remarks, addedDate, lastUpdated, dispatchHistory } = material;
+            const totalMaterial = stock + dispatched;
+
+            // ✅ Fix: Ensure remarks is an array and all values are strings
+            const displayRemarks = Array.isArray(remarks) && remarks.length > 0
+                ? remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
+                : ["Nil"];
+
+            let addedDateFormatted = addedDate ? formatDate(new Date(addedDate)) : "Unknown";
+            let lastUpdatedFormatted = lastUpdated ? formatDate(new Date(lastUpdated)) : "Unknown";
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>
+                    <small style="color: red; font-size: 12px;">Added: ${addedDateFormatted}</small>
+                    <br>
+                    <strong>${name}</strong>
+                    <br>
+                    ${dispatchHistory && dispatchHistory.length > 0
+                        ? dispatchHistory.map(d => `
+                            <small style="color: blue; font-size: 12px;">
+                                Dispatched: ${d.quantity} No's, Date: ${formatDate(new Date(d.date))}, 
+                                Remarks: ${d.remarks ? d.remarks : "Nil"}
+                            </small><br>`).join("")
+                        : ""
+                    }
+                </td>
+                <td>${type}</td>
+                <td>${stock}</td>
+                <td>${dispatched}</td>
+                <td>${totalMaterial}</td>
+                <td>
+                    <ul class="remarks-list">
+                        ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                </td>
+                <td>
+                    <button class="edit-btn" onclick="editMaterial(${index})">Edit</button>
+                    <button class="delete-btn" onclick="deleteMaterial(${index})">Delete</button>
+                </td>
+            `;
+            stockList.appendChild(row);
+        });
+    }
+
+    // Helper function to create a material row
+    function createMaterialRow(material, index) {
+        const { name, type, stock, dispatched, remarks } = material;
         const totalMaterial = stock + dispatched;
-
-        const displayRemarks = Array.isArray(remarks) && remarks.length > 0
-            ? remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
-            : ["Nil"];
-
-        let addedDateFormatted = addedDate ? formatDate(new Date(addedDate)) : "Unknown";
-        let lastUpdatedFormatted = lastUpdated ? formatDate(new Date(lastUpdated)) : "Unknown";
+        const displayRemarks = remarks.length === 0 || remarks[0].trim() === "" ? ["Nil"] : remarks;
 
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${index + 1}</td>
-            <td>
-                <small style="color: red; font-size: 12px;">Added: ${addedDateFormatted}</small>
-                <br>
-                <strong>${name}</strong>
-                <br>
-                ${dispatchHistory && dispatchHistory.length > 0
-                    ? dispatchHistory.map(d => `
-                        <small style="color: blue; font-size: 12px;">
-                            Dispatched: ${d.quantity} No's, Date: ${formatDate(new Date(d.date))}, 
-                            Remarks: ${d.remarks ? d.remarks : "Nil"}
-                        </small><br>`).join("")
-                    : ""
-                }
-            </td>
+            <td>${name}</td>
             <td>${type}</td>
             <td>${stock}</td>
             <td>${dispatched}</td>
@@ -281,102 +310,77 @@ function renderStock(filteredMaterials = materials) {
                 <button class="delete-btn" onclick="deleteMaterial(${index})">Delete</button>
             </td>
         `;
-        stockList.appendChild(row);
-    });
-}
-
-// Helper function to create a material row
-function createMaterialRow(material, index) {
-    const { name, type, stock, dispatched, remarks } = material;
-    const totalMaterial = stock + dispatched;
-    const displayRemarks = remarks.length === 0 || remarks[0].trim() === "" ? ["Nil"] : remarks;
-
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>${name}</td>
-        <td>${type}</td>
-        <td>${stock}</td>
-        <td>${dispatched}</td>
-        <td>${totalMaterial}</td>
-        <td>
-            <ul class="remarks-list">
-                ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
-            </ul>
-        </td>
-        <td>
-            <button class="edit-btn" onclick="editMaterial(${index})">Edit</button>
-            <button class="delete-btn" onclick="deleteMaterial(${index})">Delete</button>
-        </td>
-    `;
-    return row;
-}
-
-// Render the dashboard summary
-function renderDashboard(summaryMap) {
-    materialSummaryContainer.innerHTML = ''; // Clear existing summary content
-    let serialNumber = 1;
-
-    for (const type in summaryMap) {
-        const { totalStock, totalDispatched, totalMaterial, materials } = summaryMap[type];
-
-        const summaryRow = document.createElement('tr');
-        summaryRow.innerHTML = `
-            <td>${serialNumber++}</td>
-            <td>${type}</td>
-            <td>${totalStock}</td>
-            <td>${totalDispatched}</td>
-            <td>${totalMaterial}</td>
-            <td>
-                <ul class="remarks-list">
-                    ${materials.map(material => {
-                        const displayRemarks = Array.isArray(material.remarks) && material.remarks.length > 0
-                            ? material.remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
-                            : ["Nil"];
-
-                        return ` 
-                            <li>
-                                ${material.name}: Stock - ${material.stock}, Dispatched - ${material.dispatched}, Total - ${material.stock + material.dispatched}
-                                <ul class="remarks-list">
-                                    ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
-                                </ul>
-                            </li>
-                        `;
-                    }).join('')}
-                </ul>
-            </td>
-        `;
-        materialSummaryContainer.appendChild(summaryRow);
+        return row;
     }
-}
 
-// Update the summary map with the latest material
-function updateSummaryMap(summaryMap, updatedMaterial) {
-    const { type, stock, dispatched, remarks } = updatedMaterial;
+    // Render the summary dashboard
+    function renderDashboard(summaryMap) {
+        materialSummaryContainer.innerHTML = ''; // Clear existing summary content
+        let serialNumber = 1;
 
-    if (summaryMap[type]) {
-        const materialIndex = summaryMap[type].materials.findIndex(m => m._id === updatedMaterial._id);
+        for (const type in summaryMap) {
+            const { totalStock, totalDispatched, totalMaterial, materials } = summaryMap[type];
 
-        if (materialIndex !== -1) {
-            summaryMap[type].materials[materialIndex].stock = stock;
-            summaryMap[type].materials[materialIndex].dispatched = dispatched;
-            summaryMap[type].materials[materialIndex].remarks = remarks;
+            const summaryRow = document.createElement('tr');
+            summaryRow.innerHTML = `
+                <td>${serialNumber++}</td>
+                <td>${type}</td>
+                <td>${totalStock}</td>
+                <td>${totalDispatched}</td>
+                <td>${totalMaterial}</td>
+                <td>
+                    <ul class="remarks-list">
+                        ${materials.map(material => {
+                            const displayRemarks = Array.isArray(material.remarks) && material.remarks.length > 0
+                                ? material.remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
+                                : ["Nil"];
+
+                            return ` 
+                                <li>
+                                    ${material.name}: Stock - ${material.stock}, Dispatched - ${material.dispatched}, Total - ${material.stock + material.dispatched}
+                                    <ul class="remarks-list">
+                                        ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
+                                    </ul>
+                                </li>
+                            `;
+                        }).join('')}
+                    </ul>
+                </td>
+            `;
+            materialSummaryContainer.appendChild(summaryRow);
         }
-
-        summaryMap[type].totalStock = summaryMap[type].materials.reduce((sum, m) => sum + m.stock, 0);
-        summaryMap[type].totalDispatched = summaryMap[type].materials.reduce((sum, m) => sum + m.dispatched, 0);
-        summaryMap[type].totalMaterial = summaryMap[type].totalStock + summaryMap[type].totalDispatched;
     }
-}
 
-// Function to fetch materials from the server
-async function fetchMaterials() {
+    function updateSummaryMap(summaryMap, updatedMaterial) {
+        const { type, stock, dispatched, remarks } = updatedMaterial;
+
+        if (summaryMap[type]) {
+            // Find the material inside the type's material list
+            const materialIndex = summaryMap[type].materials.findIndex(m => m._id === updatedMaterial._id);
+            
+            if (materialIndex !== -1) {
+                // Update the material details
+                summaryMap[type].materials[materialIndex].stock = stock;
+                summaryMap[type].materials[materialIndex].dispatched = dispatched;
+                summaryMap[type].materials[materialIndex].remarks = remarks;
+            }
+
+            // Recalculate totals
+            summaryMap[type].totalStock = summaryMap[type].materials.reduce((sum, m) => sum + m.stock, 0);
+            summaryMap[type].totalDispatched = summaryMap[type].materials.reduce((sum, m) => sum + m.dispatched, 0);
+            summaryMap[type].totalMaterial = summaryMap[type].totalStock + summaryMap[type].totalDispatched;
+        }
+    }
+
+    // Function to fetch materials from the server
+    async function fetchMaterials() {
     try {
         const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
         if (!response.ok) throw new Error("Failed to fetch materials.");
 
-        materials = await response.json();
+        const materials = await response.json();
 
+        // Store materials without updating the "Last Updated" timestamp
         materials.forEach(material => {
             material.remarks = Array.isArray(material.remarks) 
                 ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
@@ -386,45 +390,36 @@ async function fetchMaterials() {
             material.lastUpdatedFormatted = material.lastUpdated ? formatDate(new Date(material.lastUpdated)) : "Unknown";
         });
 
-        renderStock();
+        renderStock(materials);
         renderDashboard(calculateSummary(materials));
 
-        const now = new Date();
-        localStorage.setItem('lastUpdated', now.toISOString());
+        loadLastUpdated(); // Only load the timestamp from localStorage (not update)
 
-        loadLastUpdated();
     } catch (error) {
         console.error("Error fetching materials:", error);
     }
 }
 
-// Calculate summary data for dashboard
-function calculateSummary(materials) {
-    const summaryMap = {};
+    // Calculate summary data for dashboard
+    function calculateSummary(materials) {
+        const summaryMap = {};
 
-    materials.forEach((material) => {
-        if (!summaryMap[material.type]) {
-            summaryMap[material.type] = {
-                totalStock: 0,
-                totalDispatched: 0,
-                totalMaterial: 0,
-                materials: []
-            };
-        }
+        materials.forEach((material) => {
+            const { type, stock, dispatched, remarks } = material;
+            const totalMaterial = stock + dispatched;
 
-        summaryMap[material.type].materials.push(material);
+            if (!summaryMap[type]) {
+                summaryMap[type] = { totalStock: 0, totalDispatched: 0, totalMaterial: 0, materials: [] };
+            }
 
-        summaryMap[material.type].totalStock += material.stock;
-        summaryMap[material.type].totalDispatched += material.dispatched;
-        summaryMap[material.type].totalMaterial += material.stock + material.dispatched;
-    });
+            summaryMap[type].totalStock += stock;
+            summaryMap[type].totalDispatched += dispatched;
+            summaryMap[type].totalMaterial += totalMaterial;
+            summaryMap[type].materials.push(material);
+        });
 
-    return summaryMap;
-}
-
-// Call the function to fetch materials when the page loads
-fetchMaterials();
-
+        return summaryMap;
+    }
 
     async function addOrUpdateMaterial() {
         const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null;
