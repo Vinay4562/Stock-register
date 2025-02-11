@@ -25,7 +25,6 @@
   <div class="container">
     <div class="dashboard">
       <h2 id="dashboard-heading">Dashboard</h2>
-      <div id="lastUpdated"></div>
       <p id="last-updated">Last Updated: Not Available</p>
       <div class="download-buttons">
         <button id="download-excel-btn">
@@ -220,17 +219,13 @@
       loadLastUpdated();  // Call this when the page is fully loaded
     });
 
-    document.addEventListener("DOMContentLoaded", () => {
-        fetchMaterials();
-    });
-
-    function updateLastUpdatedOnUI(lastUpdatedTimestamp) {
-        const lastUpdatedElement = document.getElementById("lastUpdated");
-        console.log(lastUpdatedElement); // ✅ Debugging: Check if the element exists
+    function updateLastUpdatedOnUI(latestLastUpdated) {
+        const lastUpdatedElement = document.getElementById('lastUpdated'); // Assuming you have an element with this ID to show the timestamp
+        const formattedDate = new Date(latestLastUpdated).toLocaleString(); // Format the date in a user-friendly format
         if (lastUpdatedElement) {
-            lastUpdatedElement.textContent = `Last Updated: ${lastUpdatedTimestamp}`;
+            lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
         } else {
-            console.error("Element with ID 'lastUpdated' not found.");
+            console.error('Element with ID "lastUpdated" not found.');
         }
     }
 
@@ -385,7 +380,6 @@
             
             console.log("Fetched Materials:", materials);  // ✅ Debugging line
 
-            // Format remarks and dates
             materials.forEach(material => {
                 material.remarks = Array.isArray(material.remarks) 
                     ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
@@ -401,17 +395,6 @@
                     : "Unknown";
             });
 
-            // Find the most recent material based on 'lastUpdated'
-            const latestUpdatedMaterial = materials.reduce((latest, material) => {
-                return (new Date(latest.lastUpdated) > new Date(material.lastUpdated)) ? latest : material;
-            });
-
-            console.log("Most recent 'Last Updated' timestamp from materials:", latestUpdatedMaterial.lastUpdated);
-
-            // Update the Last Updated timestamp on the UI
-            updateLastUpdatedOnUI(latestUpdatedMaterial.lastUpdated);
-
-            // Render stock and dashboard
             renderStock();
             renderDashboard(calculateSummary(materials));
         } catch (error) {
