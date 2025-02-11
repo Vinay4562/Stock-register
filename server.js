@@ -70,29 +70,12 @@ app.post('/login', async (req, res) => {
   const user = users.find(u => u.username === username);
 
   if (user && await bcrypt.compare(password, user.password)) {
-    // Fetch the last updated date from the Material collection
-    try {
-      const lastUpdatedMaterial = await Material.findOne({}, {}, { sort: { updatedAt: -1 } }).select('updatedAt');
-      
-      if (!lastUpdatedMaterial) {
-        return res.status(404).json({ success: false, message: 'No material found' });
-      }
-
-      req.session.user = username;
-      res.json({ 
-        success: true, 
-        redirect: '/material_index.html', 
-        lastUpdated: lastUpdatedMaterial.updatedAt 
-      });
-    } catch (error) {
-      console.error("Error fetching last updated date:", error);
-      res.status(500).json({ success: false, message: error.message });
-    }
+    req.session.user = username;
+    res.json({ success: true, redirect: '/material_index.html' });
   } else {
     res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 });
-
 
 function isAuthenticated(req, res, next) {
   if (req.session.user) {

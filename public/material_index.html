@@ -26,7 +26,6 @@
     <div class="dashboard">
       <h2 id="dashboard-heading">Dashboard</h2>
       <p id="last-updated">Last Updated: Not Available</p>
-      <div id="lastUpdatedContainer"></div>
       <div class="download-buttons">
         <button id="download-excel-btn">
             <i class="fas fa-file-csv"></i>
@@ -184,18 +183,15 @@
 
     // Function to update the last updated date and time
     function updateLastUpdated(action) {
-        const lastUpdatedDate = new Date().toLocaleString(); // Get current date and time
+        const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
         console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
         
         // Store the last updated timestamp in localStorage
         localStorage.setItem('lastUpdated', lastUpdatedDate);
 
-        // Log the localStorage to ensure it's saving correctly
-        console.log("Stored Last Updated in localStorage:", localStorage.getItem('lastUpdated'));
-
-        // Update the UI
-        const lastUpdatedElement = document.getElementById('last-updated');
+        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
         if (lastUpdatedElement) {
+            // Update the UI
             lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
         } else {
             console.error('Element with ID "last-updated" not found.');
@@ -204,20 +200,14 @@
 
     // Function to load the last updated date and time from localStorage
     function loadLastUpdated() {
-        const lastUpdatedElement = document.getElementById('last-updated'); // Correct ID for your UI element
+        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
 
         if (lastUpdatedElement) {
-            // Retrieve the last updated date and time from localStorage
             const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
-            
-            // Debug log to check if it's being retrieved correctly
-            console.log("Retrieved Last Updated from localStorage:", lastUpdatedFromStorage);
-
             if (lastUpdatedFromStorage) {
                 lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
             } else {
-                // If no value is found in localStorage, display a default message
-                lastUpdatedElement.textContent = 'Last Updated: Not Available';
+                console.log('No last updated timestamp found in localStorage.');
             }
         } else {
             console.error('Element with ID "last-updated" not found.');

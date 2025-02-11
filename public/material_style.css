@@ -50,14 +50,6 @@ body {
   color: white; /* Ensure text color is white for contrast */
 }
 
-#lastUpdatedContainer {
-  font-size: 16px;
-  color: #4CAF50;
-  margin-top: 20px;
-  font-weight: bold;
-}
-
-
 /* Logout Button Styling */
 .logout-btn {
   background-color: #FF5733; /* Logout button color */
