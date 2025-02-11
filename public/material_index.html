@@ -26,6 +26,7 @@
     <div class="dashboard">
       <h2 id="dashboard-heading">Dashboard</h2>
       <p id="last-updated">Last Updated: Not Available</p>
+      <span id="lastUpdatedLabel">Last Updated: Not Available</span>
       <div class="download-buttons">
         <button id="download-excel-btn">
             <i class="fas fa-file-csv"></i>
@@ -200,19 +201,19 @@
 
     // Function to load the last updated date and time from localStorage
     function loadLastUpdated() {
+    const lastUpdatedLabel = document.getElementById('lastUpdatedLabel');
     const lastUpdated = localStorage.getItem('lastUpdated');
-    if (lastUpdated) {
-        // Convert the ISO string back to a Date object
-        const lastUpdatedDate = new Date(lastUpdated);
-        
-        // Format the date (assuming formatDate is properly defined)
-        const formattedDate = formatDate(lastUpdatedDate);
-        
-        // Display the formatted date where needed (e.g., in a label, span, etc.)
-        document.getElementById('lastUpdatedLabel').innerText = `Last Updated: ${formattedDate}`;
+    
+    if (lastUpdatedLabel) {
+        if (lastUpdated) {
+            const lastUpdatedDate = new Date(lastUpdated);
+            const formattedDate = formatDate(lastUpdatedDate);
+            lastUpdatedLabel.innerText = `Last Updated: ${formattedDate}`;
+        } else {
+            lastUpdatedLabel.innerText = "No data available.";
+        }
     } else {
-        // Handle case when no lastUpdated is found
-        console.log("No last updated date found.");
+        console.error("Element with id 'lastUpdatedLabel' not found.");
     }
 }
 
