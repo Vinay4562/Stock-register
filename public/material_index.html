@@ -203,7 +203,7 @@
         const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
 
         if (lastUpdatedElement) {
-            const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
+            const lastUpdatedFromStorage = localStorage.getItem('last-updated');
             if (lastUpdatedFromStorage) {
                 lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
             } else {
