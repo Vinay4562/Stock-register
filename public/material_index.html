@@ -219,8 +219,6 @@
       loadLastUpdated();  // Call this when the page is fully loaded
     });
 
-    
-
     function updateLastUpdatedOnUI(latestLastUpdated) {
         const lastUpdatedElement = document.getElementById('lastUpdated'); // Assuming you have an element with this ID to show the timestamp
         const formattedDate = new Date(latestLastUpdated).toLocaleString(); // Format the date in a user-friendly format
@@ -399,6 +397,7 @@
 
             renderStock();
             renderDashboard(calculateSummary(materials));
+            loadLastUpdated();
         } catch (error) {
             console.error("Error fetching materials:", error);
         }
