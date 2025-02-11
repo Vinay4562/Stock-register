@@ -246,12 +246,13 @@
         }
     }
 
-    // Update the last updated timestamp in the UI
     function updateLastUpdatedOnUI(latestLastUpdated) {
-        const lastUpdatedElement = document.getElementById('last-updated'); // Ensure you are using the correct ID
+        const lastUpdatedElement = document.getElementById('lastUpdated'); // Assuming you have an element with this ID to show the timestamp
+        const formattedDate = new Date(latestLastUpdated).toLocaleString(); // Format the date in a user-friendly format
         if (lastUpdatedElement) {
-            const formattedDate = new Date(latestLastUpdated).toLocaleString();
             lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
+        } else {
+            console.error('Element with ID "lastUpdated" not found.');
         }
     }
 
@@ -493,7 +494,6 @@
 
         // Call to update the last updated timestamp
         updateLastUpdated(existingMaterial ? "Material Updated" : "Material Added");
-        updateLastUpdated("Material Added/Updated");
 
     } catch (error) {
         console.error("Error during material add/update:", error);

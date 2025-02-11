@@ -50,15 +50,14 @@ const MaterialSchema = new mongoose.Schema({
   dispatched: { type: Number, default: 0, min: 0 },
   remarks: [{ text: String, date: { type: Date, default: Date.now } }],
   dispatchHistory: [
-    {
-      quantity: { type: Number, required: true, min: 1 },
-      date: { type: Date, default: Date.now },
-      remarks: String
-    }
+      {
+          quantity: { type: Number, required: true, min: 1 },
+          date: { type: Date, default: Date.now },
+          remarks: String
+      }
   ],
-  addedDate: { type: Date, default: Date.now },  // addedDate to track when the material was first added
-  lastUpdated: { type: Date, default: Date.now }, // Track when the material was last updated
-}, { timestamps: true });  // Automatically tracks createdAt and updatedAt
+  addedDate: { type: Date, default: Date.now },  // ✅ Add this line
+}, { timestamps: true });  // ✅ Automatically tracks createdAt and updatedAt
 
 const Material = mongoose.model("Material", MaterialSchema);
 
@@ -116,23 +115,15 @@ app.get('/api/materials', isAuthenticated, async (req, res) => {
 
 app.get('/api/last-updated', isAuthenticated, async (req, res) => {
   try {
-    // Fetch the most recently updated material by updatedAt
-    const lastUpdatedMaterial = await Material.findOne({}, {}, { sort: { updatedAt: -1 } }).select('lastUpdated name updatedAt');
-
-    if (!lastUpdatedMaterial) {
-      return res.status(404).json({ message: 'No materials found to track last update.' });
+    const lastUpdated = await Material.findOne({}, {}, { sort: { updatedAt: -1 } }).select('updatedAt');
+    if (!lastUpdated) {
+      return res.status(404).json({ message: 'Last updated data not found' });
     }
-    
-    res.json({ 
-      lastUpdated: lastUpdatedMaterial.lastUpdated, 
-      materialName: lastUpdatedMaterial.name,
-      updatedAt: lastUpdatedMaterial.updatedAt 
-    });
+    res.json({ lastUpdated: lastUpdated.updatedAt });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 
 app.post('/api/materials', isAuthenticated, async (req, res) => {
   const { name, type, stock, remarks } = req.body;
@@ -190,27 +181,22 @@ app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
 
 app.delete('/api/materials/:id', isAuthenticated, async (req, res) => {
   try {
-    const deletedMaterial = await Material.findByIdAndDelete(req.params.id);
-    
-    if (!deletedMaterial) {
-      return res.status(404).json({ success: false, message: "Material not found" });
-    }
+      const deletedMaterial = await Material.findByIdAndDelete(req.params.id);
+      
+      if (!deletedMaterial) {
+          return res.status(404).json({ success: false, message: "Material not found" });
+      }
 
-    // Set the lastUpdated timestamp for the deleted material
-    const latestUpdate = new Date();
-    await Material.findByIdAndUpdate(req.params.id, { $set: { lastUpdated: latestUpdate } });
+      // Update the last updated timestamp for tracking latest modification
+      const latestUpdate = new Date();
+      await Material.updateMany({}, { $set: { lastUpdated: latestUpdate } });
 
-    res.json({ 
-      success: true, 
-      message: "Material deleted successfully", 
-      lastUpdated: latestUpdate 
-    });
+      res.json({ success: true, message: "Material deleted successfully", lastUpdated: latestUpdate });
   } catch (err) {
-    console.error("Error deleting material:", err);
-    res.status(500).json({ success: false, message: err.message });
+      console.error("Error deleting material:", err);
+      res.status(500).json({ success: false, message: err.message });
   }
 });
-
 
 
 const PORT = process.env.PORT || 8000;
