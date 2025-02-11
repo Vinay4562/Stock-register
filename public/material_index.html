@@ -371,7 +371,11 @@
     }
 
     // Function to fetch materials from the server
-    async function fetchMaterials() {
+    document.addEventListener('DOMContentLoaded', function () {
+    fetchMaterials();
+});
+
+async function fetchMaterials() {
     try {
         const response = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials');
         if (!response.ok) throw new Error("Failed to fetch materials.");
