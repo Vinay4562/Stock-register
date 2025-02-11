@@ -35,7 +35,7 @@ mongoose.connect(mongoURI)
   .then(() => console.log("Connected to MongoDB"))
   .catch(err => console.error("MongoDB Connection Error:", err));
 
-// ✅ User Schema & Model (Replace Hardcoded Users)
+// ✅ User Schema & Model
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true, trim: true },
   password: { type: String, required: true }
@@ -50,24 +50,19 @@ const MaterialSchema = new mongoose.Schema({
   dispatched: { type: Number, default: 0, min: 0 },
   remarks: [{ text: String, date: { type: Date, default: Date.now } }],
   dispatchHistory: [
-      {
-          quantity: { type: Number, required: true, min: 1 },
-          date: { type: Date, default: Date.now },
-          remarks: String
-      }
-  ],
-  addedDate: { type: Date, default: Date.now },  // ✅ Add this line
+    {
+      quantity: { type: Number, required: true, min: 1 },
+      date: { type: Date, default: Date.now },
+      remarks: String
+    }
+  ]
 }, { timestamps: true });  // ✅ Automatically tracks createdAt and updatedAt
 
 const Material = mongoose.model("Material", MaterialSchema);
 
-const users = [
-  { username: 'Shankarpally400kv', password: bcrypt.hashSync('password123', 10) }
-];
-
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const user = users.find(u => u.username === username);
+  const user = await User.findOne({ username });
 
   if (user && await bcrypt.compare(password, user.password)) {
     req.session.user = username;
@@ -128,6 +123,11 @@ app.get('/api/last-updated', isAuthenticated, async (req, res) => {
 app.post('/api/materials', isAuthenticated, async (req, res) => {
   const { name, type, stock, remarks } = req.body;
 
+  // Validate required fields
+  if (!name || !type || stock === undefined) {
+    return res.status(400).json({ success: false, message: "Missing required fields" });
+  }
+
   try {
     const newMaterial = new Material({
       name,
@@ -135,8 +135,6 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
       stock,
       dispatched: 0,
       remarks: Array.isArray(remarks) ? remarks : [{ text: "Nil" }],
-      addedDate: new Date(),  // ✅ Ensure correct date format
-      lastUpdated: new Date()
     });
 
     await newMaterial.save();
@@ -151,50 +149,50 @@ app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
   const { name, type, stock, dispatched, remarks, dispatchHistory } = req.body;
 
   try {
-      const material = await Material.findById(req.params.id);
+    const material = await Material.findById(req.params.id);
 
-      if (!material) {
-          return res.status(404).json({ success: false, message: "Material not found" });
-      }
+    if (!material) {
+      return res.status(404).json({ success: false, message: "Material not found" });
+    }
 
-      // Do NOT change 'addedDate' on updates
-      material.name = name || material.name;
-      material.type = type || material.type;
-      material.stock = stock !== undefined ? stock : material.stock;
-      material.dispatched = dispatched !== undefined ? dispatched : material.dispatched;
-      
-      material.remarks = Array.isArray(remarks) && remarks.length > 0 
-                         ? remarks.map(r => (typeof r === 'string' ? { text: r } : r)) 
-                         : material.remarks; // Retain previous remarks if empty
+    // Do NOT change 'addedDate' on updates
+    material.name = name || material.name;
+    material.type = type || material.type;
+    material.stock = stock !== undefined ? stock : material.stock;
+    material.dispatched = dispatched !== undefined ? dispatched : material.dispatched;
 
-      material.dispatchHistory = dispatchHistory || material.dispatchHistory;
-      material.lastUpdated = new Date(); // Only update lastUpdated
+    material.remarks = Array.isArray(remarks) && remarks.length > 0 
+      ? remarks.map(r => (typeof r === 'string' ? { text: r } : r)) 
+      : material.remarks; // Retain previous remarks if empty
 
-      await material.save();
-      res.json({ success: true, material });
+    material.dispatchHistory = dispatchHistory || material.dispatchHistory;
+    material.lastUpdated = new Date(); // Only update lastUpdated
+
+    await material.save();
+    res.json({ success: true, material });
 
   } catch (err) {
-      console.error("Error updating material:", err);
-      res.status(500).json({ success: false, message: err.message });
+    console.error("Error updating material:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
 app.delete('/api/materials/:id', isAuthenticated, async (req, res) => {
   try {
-      const deletedMaterial = await Material.findByIdAndDelete(req.params.id);
-      
-      if (!deletedMaterial) {
-          return res.status(404).json({ success: false, message: "Material not found" });
-      }
+    const deletedMaterial = await Material.findByIdAndDelete(req.params.id);
 
-      // Update the last updated timestamp for tracking latest modification
-      const latestUpdate = new Date();
-      await Material.updateMany({}, { $set: { lastUpdated: latestUpdate } });
+    if (!deletedMaterial) {
+      return res.status(404).json({ success: false, message: "Material not found" });
+    }
 
-      res.json({ success: true, message: "Material deleted successfully", lastUpdated: latestUpdate });
+    // Update the last updated timestamp for tracking latest modification
+    const latestUpdate = new Date();
+    await Material.updateMany({}, { $set: { lastUpdated: latestUpdate } });
+
+    res.json({ success: true, message: "Material deleted successfully", lastUpdated: latestUpdate });
   } catch (err) {
-      console.error("Error deleting material:", err);
-      res.status(500).json({ success: false, message: err.message });
+    console.error("Error deleting material:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
