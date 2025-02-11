@@ -32,43 +32,33 @@
 
     <script>
         document.getElementById("login-form").addEventListener("submit", async function(event) {
-    event.preventDefault();
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-    
-    try {
-        const response = await fetch("https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",  // Ensures cookies (session) are sent
-            body: JSON.stringify({ username, password })
+            event.preventDefault();
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+            
+            try {
+                const response = await fetch("https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "include",  // Ensures cookies (session) are sent
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    window.location.href = result.redirect;
+                } else {
+                    document.getElementById("error-message").textContent = result.message;
+                }
+            } catch (error) {
+                document.getElementById("error-message").textContent = "An error occurred. Please try again.";
+                console.error("Login Error:", error);
+            }
         });
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        if (result.success) {
-            // If the login is successful, redirect to the dashboard
-            window.location.href = result.redirect;
-
-            // After redirection, fetch the last updated date and display it
-            const lastUpdated = new Date(result.lastUpdated);
-            const formattedDate = lastUpdated.toLocaleString();  // You can customize the format here
-
-            // Assuming you have a container with ID 'lastUpdatedContainer' on the dashboard page
-            document.getElementById('lastUpdatedContainer').textContent = `Last Updated: ${formattedDate}`;
-
-        } else {
-            document.getElementById("error-message").textContent = result.message;
-        }
-    } catch (error) {
-        document.getElementById("error-message").textContent = "An error occurred. Please try again.";
-        console.error("Login Error:", error);
-    }
-});
-
 
 
         // Disable back navigation after logout by manipulating history
