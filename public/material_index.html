@@ -200,19 +200,22 @@
 
     // Function to load the last updated date and time from localStorage
     function loadLastUpdated() {
-        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
-
-        if (lastUpdatedElement) {
-            const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
-            if (lastUpdatedFromStorage) {
-                lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
-            } else {
-                console.log('No last updated timestamp found in localStorage.');
-            }
-        } else {
-            console.error('Element with ID "last-updated" not found.');
-        }
+    const lastUpdated = localStorage.getItem('lastUpdated');
+    if (lastUpdated) {
+        // Convert the ISO string back to a Date object
+        const lastUpdatedDate = new Date(lastUpdated);
+        
+        // Format the date (assuming formatDate is properly defined)
+        const formattedDate = formatDate(lastUpdatedDate);
+        
+        // Display the formatted date where needed (e.g., in a label, span, etc.)
+        document.getElementById('lastUpdatedLabel').innerText = `Last Updated: ${formattedDate}`;
+    } else {
+        // Handle case when no lastUpdated is found
+        console.log("No last updated date found.");
     }
+}
+
 
     // Run this function once the page has fully loaded
     document.addEventListener('DOMContentLoaded', function () {
@@ -398,13 +401,12 @@
         renderStock();
         renderDashboard(calculateSummary(materials));
 
-        // Get the most recent `lastUpdated` value from materials (if available)
-        const latestMaterial = materials.reduce((latest, current) => {
-            return new Date(current.lastUpdated) > new Date(latest.lastUpdated) ? current : latest;
-        }, { lastUpdated: "1970-01-01T00:00:00Z" });
+        // Define 'now' as the current date/time (not from a material)
+        const now = new Date();
+        
+        // Store the raw ISO string of the current date in localStorage
+        localStorage.setItem('lastUpdated', now.toISOString());
 
-        const now = new Date(latestMaterial.lastUpdated);
-        localStorage.setItem('lastUpdated', formatDate(now));
         loadLastUpdated();
     } catch (error) {
         console.error("Error fetching materials:", error);
