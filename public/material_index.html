@@ -189,7 +189,10 @@
         // Store the last updated timestamp in localStorage
         localStorage.setItem('lastUpdated', lastUpdatedDate);
 
-        // Update the UI (optional, to show it immediately after update)
+        // Log the localStorage to ensure it's saving correctly
+        console.log("Stored Last Updated in localStorage:", localStorage.getItem('lastUpdated'));
+
+        // Update the UI
         const lastUpdatedElement = document.getElementById('last-updated');
         if (lastUpdatedElement) {
             lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
@@ -206,6 +209,9 @@
             // Retrieve the last updated date and time from localStorage
             const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
             
+            // Debug log to check if it's being retrieved correctly
+            console.log("Retrieved Last Updated from localStorage:", lastUpdatedFromStorage);
+
             if (lastUpdatedFromStorage) {
                 lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
             } else {
