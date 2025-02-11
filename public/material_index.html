@@ -183,15 +183,15 @@
 
     // Function to update the last updated date and time
     function updateLastUpdated(action) {
-        const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
+        const lastUpdatedDate = new Date().toLocaleString(); // Get current date and time
         console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
         
         // Store the last updated timestamp in localStorage
         localStorage.setItem('lastUpdated', lastUpdatedDate);
 
-        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
+        // Update the UI (optional, to show it immediately after update)
+        const lastUpdatedElement = document.getElementById('last-updated');
         if (lastUpdatedElement) {
-            // Update the UI
             lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
         } else {
             console.error('Element with ID "last-updated" not found.');
@@ -200,14 +200,17 @@
 
     // Function to load the last updated date and time from localStorage
     function loadLastUpdated() {
-        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
+        const lastUpdatedElement = document.getElementById('last-updated'); // Correct ID for your UI element
 
         if (lastUpdatedElement) {
+            // Retrieve the last updated date and time from localStorage
             const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
+            
             if (lastUpdatedFromStorage) {
                 lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
             } else {
-                console.log('No last updated timestamp found in localStorage.');
+                // If no value is found in localStorage, display a default message
+                lastUpdatedElement.textContent = 'Last Updated: Not Available';
             }
         } else {
             console.error('Element with ID "last-updated" not found.');
