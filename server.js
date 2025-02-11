@@ -71,27 +71,21 @@ app.post('/login', async (req, res) => {
 
   if (user && await bcrypt.compare(password, user.password)) {
     req.session.user = username;
-    
-    // Fetch last updated date and time
-    try {
-      const lastUpdatedResponse = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/last-updated', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${req.sessionID}`  // Make sure to include session ID or token for authentication
-        }
-      });
-      
-      const lastUpdatedData = await lastUpdatedResponse.json();
 
-      if (lastUpdatedResponse.ok) {
+    // Fetch the last updated date directly from the database
+    try {
+      const lastUpdatedMaterial = await Material.findOne({}, {}, { sort: { updatedAt: -1 } }).select('updatedAt');
+      
+      if (lastUpdatedMaterial) {
+        const lastUpdated = lastUpdatedMaterial.updatedAt;
+
         res.json({
           success: true,
-          lastUpdated: lastUpdatedData.lastUpdated,
+          lastUpdated: lastUpdated,
           redirect: '/material_index.html'
         });
       } else {
-        res.status(500).json({ success: false, message: 'Failed to fetch last updated date' });
+        res.status(500).json({ success: false, message: 'No material found to fetch last updated date' });
       }
     } catch (err) {
       console.error('Error fetching last updated date:', err);
@@ -101,7 +95,6 @@ app.post('/login', async (req, res) => {
     res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 });
-
 
 function isAuthenticated(req, res, next) {
   if (req.session.user) {
