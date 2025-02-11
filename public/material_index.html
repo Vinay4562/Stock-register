@@ -392,7 +392,7 @@ async function fetchMaterials() {
                 ? material.remarks.map(r => (typeof r === "object" && r !== null ? r : { text: "Nil" })) 
                 : [];
 
-            // ✅ Ensure addedDate is formatted correctly
+            // Ensure addedDate is formatted correctly
             material.addedDateFormatted = material.addedDate 
                 ? formatDate(new Date(material.addedDate))
                 : "Unknown";
@@ -414,6 +414,11 @@ async function fetchMaterials() {
         const formattedMostRecentDate = mostRecentDate 
             ? formatDate(mostRecentDate) 
             : "No updates available";
+
+        // Save the most recent date to localStorage
+        if (mostRecentDate) {
+            localStorage.setItem('lastUpdated', mostRecentDate.toISOString()); // Store the ISO string of the date
+        }
 
         // Call the dashboard render function to display the most recent activity date
         renderStock();
