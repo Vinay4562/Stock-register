@@ -25,7 +25,7 @@
   <div class="container">
     <div class="dashboard">
       <h2 id="dashboard-heading">Dashboard</h2>
-      <p id="last-updated">Last Updated: Not Available</p>
+      <div id="lastUpdated">Last Updated: Not Available</div>
       <div class="download-buttons">
         <button id="download-excel-btn">
             <i class="fas fa-file-csv"></i>
@@ -224,13 +224,16 @@
             const response = await fetch("https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials");
             const materials = await response.json();
 
-            // Fetch most recent 'lastUpdated' timestamp from the fetched materials
             if (materials && materials.length > 0) {
+                // Ensure all materials have the 'lastUpdated' field, otherwise set a default value
                 const latestUpdatedMaterial = materials.reduce((latest, material) => {
-                    return new Date(latest.lastUpdated) > new Date(material.lastUpdated) ? latest : material;
+                    const latestLastUpdated = latest.lastUpdated || "1970-01-01T00:00:00Z"; // Default to a very old date if not available
+                    const materialLastUpdated = material.lastUpdated || "1970-01-01T00:00:00Z"; // Same here
+                    return new Date(latestLastUpdated) > new Date(materialLastUpdated) ? latest : material;
                 });
 
-                const latestLastUpdated = latestUpdatedMaterial.lastUpdated;
+                const latestLastUpdated = latestUpdatedMaterial.lastUpdated || "Not Available";  // Fallback if missing
+
                 console.log("Most recent 'Last Updated' timestamp from materials:", latestLastUpdated);
 
                 // Update the Last Updated timestamp on the UI
@@ -245,11 +248,10 @@
         }
     }
 
-    function updateLastUpdatedOnUI(latestLastUpdated) {
-        const lastUpdatedElement = document.getElementById('lastUpdated'); // Assuming you have an element with this ID to show the timestamp
-        const formattedDate = new Date(latestLastUpdated).toLocaleString(); // Format the date in a user-friendly format
+    function updateLastUpdatedOnUI(lastUpdatedTimestamp) {
+        const lastUpdatedElement = document.getElementById('lastUpdated');
         if (lastUpdatedElement) {
-            lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
+            lastUpdatedElement.textContent = `Last Updated: ${lastUpdatedTimestamp}`;
         } else {
             console.error('Element with ID "lastUpdated" not found.');
         }
