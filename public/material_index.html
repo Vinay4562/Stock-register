@@ -25,7 +25,7 @@
   <div class="container">
     <div class="dashboard">
       <h2 id="dashboard-heading">Dashboard</h2>
-      <p id="last-updated">Last Updated: Not Available</p>
+      <div id="lastUpdated"></div>
       <div class="download-buttons">
         <button id="download-excel-btn">
             <i class="fas fa-file-csv"></i>
@@ -219,13 +219,17 @@
       loadLastUpdated();  // Call this when the page is fully loaded
     });
 
-    function updateLastUpdatedOnUI(latestLastUpdated) {
-        const lastUpdatedElement = document.getElementById('lastUpdated'); // Assuming you have an element with this ID to show the timestamp
-        const formattedDate = new Date(latestLastUpdated).toLocaleString(); // Format the date in a user-friendly format
+    document.addEventListener("DOMContentLoaded", () => {
+        fetchMaterials();
+    });
+
+    function updateLastUpdatedOnUI(lastUpdatedTimestamp) {
+        const lastUpdatedElement = document.getElementById("lastUpdated");
+        console.log(lastUpdatedElement); // ✅ Debugging: Check if the element exists
         if (lastUpdatedElement) {
-            lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
+            lastUpdatedElement.textContent = `Last Updated: ${lastUpdatedTimestamp}`;
         } else {
-            console.error('Element with ID "lastUpdated" not found.');
+            console.error("Element with ID 'lastUpdated' not found.");
         }
     }
 
