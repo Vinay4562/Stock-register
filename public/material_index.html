@@ -25,7 +25,9 @@
   <div class="container">
     <div class="dashboard">
       <h2 id="dashboard-heading">Dashboard</h2>
-      <p id="last-updated">Last Updated: Not Available</p>
+      <div class="last-updated-container">
+        <p id="last-updated-text">Last Updated: Not Available</p>
+    </div>
       <div class="download-buttons">
         <button id="download-excel-btn">
             <i class="fas fa-file-csv"></i>
@@ -198,20 +200,26 @@
         }
     }
 
-    // Function to load the last updated date and time from localStorage
     function loadLastUpdated() {
-        const lastUpdatedElement = document.getElementById('last-updated'); // Corrected ID
+    const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
+    const lastUpdatedElement = document.getElementById('last-updated-text');
+    if (lastUpdatedFromStorage) {
+        lastUpdatedElement.textContent = `Last Updated: ${lastUpdatedFromStorage}`;
+    }
+}
 
-        if (lastUpdatedElement) {
-            const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
-            if (lastUpdatedFromStorage) {
-                lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
-            } else {
-                console.log('No last updated timestamp found in localStorage.');
-            }
-        } else {
-            console.error('Element with ID "last-updated" not found.');
-        }
+// Call this function when the page is loaded
+document.addEventListener('DOMContentLoaded', loadLastUpdated);
+
+
+    // Function to load the last updated date and time from localStorage
+    function updateLastUpdated() {
+        const lastUpdatedElement = document.getElementById('last-updated-text');
+        const currentDate = new Date().toLocaleString(); // Current date and time in local format
+        lastUpdatedElement.textContent = `Last Updated: ${currentDate}`;
+        
+        // Optionally, store the last updated timestamp in localStorage if you want to persist it
+        localStorage.setItem('lastUpdated', currentDate);
     }
 
     // Run this function once the page has fully loaded
@@ -494,6 +502,7 @@
 
         // Call to update the last updated timestamp
         updateLastUpdated(existingMaterial ? "Material Updated" : "Material Added");
+        updateLastUpdated();
 
     } catch (error) {
         console.error("Error during material add/update:", error);
@@ -559,6 +568,7 @@
                 const now = new Date();
                 localStorage.setItem('lastUpdated', formatDate(now));
                 updateLastUpdated('Material deleted');
+                updateLastUpdated();
             } else {
                 const errorMsg = await response.text();
                 console.error("Failed to delete material:", errorMsg);
