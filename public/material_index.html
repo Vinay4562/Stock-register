@@ -183,20 +183,22 @@
 
     // Function to update the last updated date and time
     function updateLastUpdated(action) {
-        const lastUpdatedDate = new Date().toLocaleString(); // Get the current date and time
-        console.log("Updating Last Updated timestamp to: ", lastUpdatedDate);
-        
-        // Store the last updated timestamp in localStorage
-        localStorage.setItem('lastUpdated', lastUpdatedDate);
+    const lastUpdatedElement = document.getElementById("lastUpdated");
 
-        const lastUpdatedElement = document.getElementById('lastUpdated'); // Corrected ID
-        if (lastUpdatedElement) {
-            // Update the UI
-            lastUpdatedElement.textContent = `${action} at: ${lastUpdatedDate}`;
+    if (lastUpdatedElement) {
+        const lastUpdatedFromStorage = localStorage.getItem("lastUpdated");
+        if (lastUpdatedFromStorage) {
+            const formattedDate = new Date(lastUpdatedFromStorage).toLocaleString();
+            lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
         } else {
-            console.error('Element with ID "lastUpdated" not found.');
+            console.log('No last updated timestamp found in localStorage.');
+            lastUpdatedElement.textContent = 'Last Updated: No data available';  // Show message if no data
         }
+    } else {
+        console.error('Element with ID "lastUpdated" not found.');
     }
+}
+
 
     // Function to load the last updated date and time from localStorage
     window.onload = function() {
@@ -210,7 +212,8 @@ function loadLastUpdated() {
     if (lastUpdatedElement) {
         const lastUpdatedFromStorage = localStorage.getItem('lastUpdated');
         if (lastUpdatedFromStorage) {
-            lastUpdatedElement.textContent = `Last Updated: ${new Date(lastUpdatedFromStorage).toLocaleString()}`;
+            const formattedDate = new Date(lastUpdatedFromStorage).toLocaleString();
+            lastUpdatedElement.textContent = `Last Updated: ${formattedDate}`;
         } else {
             console.log('No last updated timestamp found in localStorage.');
             lastUpdatedElement.textContent = 'Last Updated: No data available';  // Show message if no data
@@ -219,6 +222,7 @@ function loadLastUpdated() {
         console.error('Element with ID "lastUpdated" not found.');
     }
 }
+
 
 
     function updateLastUpdatedOnUI(latestLastUpdated) {
@@ -487,8 +491,8 @@ function formatDate(date) {
 
         console.log("Material successfully added/updated.");
 
-        // Save the last updated timestamp to localStorage
-        const lastUpdatedDate = new Date().toLocaleString();
+        // Save the last updated timestamp to localStorage in ISO format
+        const lastUpdatedDate = new Date().toISOString();
         localStorage.setItem('lastUpdated', lastUpdatedDate);
 
         showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully");
@@ -497,14 +501,15 @@ function formatDate(date) {
         clearForm(); // Clear form fields
         renderDashboard(calculateSummary(materials)); // Update dashboard
 
-        // Call to update the last updated timestamp
-        updateLastUpdated(existingMaterial ? "Material Updated" : "Material Added");
+        // Update the dashboard with the most recent update time
+        updateLastUpdated("Material Updated");
 
     } catch (error) {
         console.error("Error during material add/update:", error);
         alert("An error occurred while adding/updating the material.");
     }
 }
+
 
 
     // ✅ Function to show success popup
@@ -542,38 +547,43 @@ function formatDate(date) {
 
     // Delete material
     async function deleteMaterial(index) {
-        const confirmDelete = confirm("Are you sure you want to delete this material?");
-        if (!confirmDelete) return; // Stop if the user cancels
+    const confirmDelete = confirm("Are you sure you want to delete this material?");
+    if (!confirmDelete) return; // Stop if the user cancels
 
-        try {
-            if (!materials || !materials[index]) {
-                alert("Material not found!");
-                return;
-            }
-
-            const id = materials[index]._id;
-            const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${id}`, { 
-                method: "DELETE" 
-            });
-
-            if (response.ok) {
-                showMessage("Material deleted successfully!", "delete");
-                fetchMaterials(); // Refresh list
-
-                // Update last updated timestamp in localStorage
-                const now = new Date();
-                localStorage.setItem('lastUpdated', formatDate(now));
-                updateLastUpdated('Material deleted');
-            } else {
-                const errorMsg = await response.text();
-                console.error("Failed to delete material:", errorMsg);
-                alert(`Failed to delete material: ${errorMsg}`);
-            }
-        } catch (error) {
-            console.error("Error deleting material:", error);
-            alert("An error occurred while deleting the material.");
+    try {
+        if (!materials || !materials[index]) {
+            alert("Material not found!");
+            return;
         }
+
+        const id = materials[index]._id;
+        const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${id}`, { 
+            method: "DELETE" 
+        });
+
+        if (response.ok) {
+            showMessage("Material deleted successfully!", "delete");
+
+            // Refresh the list of materials and update the dashboard
+            await fetchMaterials(); // Refresh materials list
+            renderDashboard(calculateSummary(materials)); // Update the dashboard based on new data
+
+            // Update last updated timestamp in localStorage
+            const now = new Date();
+            localStorage.setItem('lastUpdated', formatDate(now));
+
+            // Update the UI with the last updated timestamp
+            updateLastUpdated('Material deleted');
+        } else {
+            const errorMsg = await response.text();
+            console.error("Failed to delete material:", errorMsg);
+            alert(`Failed to delete material: ${errorMsg}`);
+        }
+    } catch (error) {
+        console.error("Error deleting material:", error);
+        alert("An error occurred while deleting the material.");
     }
+}
 
     // Function to show message in popup
     function showMessage(message, type) {
@@ -618,79 +628,83 @@ function formatDate(date) {
 
     // Edit material function
     saveEditBtn.addEventListener("click", async function () {
-        if (editingIndex !== -1) {
-            const dispatchedQty = parseInt(editMaterialDispatchedInput.value, 10);
-            if (isNaN(dispatchedQty) || dispatchedQty < 0) {
-                alert("Please enter a valid dispatched quantity.");
-                return;
+    if (editingIndex !== -1) {
+        const dispatchedQty = parseInt(editMaterialDispatchedInput.value, 10);
+        if (isNaN(dispatchedQty) || dispatchedQty < 0) {
+            alert("Please enter a valid dispatched quantity.");
+            return;
+        }
+
+        const remarks = editMaterialRemarksInput.value.trim() ? [editMaterialRemarksInput.value.trim()] : ["Nil"];
+        const now = new Date();
+        const lastUpdatedFormatted = now.toISOString();
+
+        let material = materials[editingIndex];
+
+        if (material.stock >= dispatchedQty) {
+            material.stock -= dispatchedQty;
+            material.dispatched += dispatchedQty;
+            material.remarks.push(...remarks);
+            material.lastUpdatedFormatted = lastUpdatedFormatted;
+
+            if (!material.dispatchHistory) {
+                material.dispatchHistory = [];
             }
+            material.dispatchHistory.push({
+                quantity: dispatchedQty,
+                date: lastUpdatedFormatted,
+                remarks: remarks.join(", ")
+            });
 
-            const remarks = editMaterialRemarksInput.value.trim() ? [editMaterialRemarksInput.value.trim()] : ["Nil"];
-            const now = new Date();
-            const lastUpdatedFormatted = now.toISOString();
-
-            let material = materials[editingIndex];
-
-            if (material.stock >= dispatchedQty) {
-                material.stock -= dispatchedQty;
-                material.dispatched += dispatchedQty;
-                material.remarks.push(...remarks);
-                material.lastUpdatedFormatted = lastUpdatedFormatted;
-
-                if (!material.dispatchHistory) {
-                    material.dispatchHistory = [];
-                }
-                material.dispatchHistory.push({
-                    quantity: dispatchedQty,
-                    date: lastUpdatedFormatted,
-                    remarks: remarks.join(", ")
+            try {
+                const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${materials[editingIndex]._id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(material),
                 });
 
-                try {
-                    const response = await fetch(`https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/materials/${materials[editingIndex]._id}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(material),
-                    });
+                console.log('Server Response Status:', response.status);
 
-                    console.log('Server Response Status:', response.status);
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(`Failed to update: ${errorData.message || 'Unknown error'}`);
-                    }
-
-                    const data = await response.json();
-                    console.log("Server Response:", data);
-
-                    if (data.success) {
-                        alert("Material updated successfully.");
-                        updateLastUpdated("Material Edited");
-
-                        // ✅ Immediately refresh materials list and dashboard
-                        await fetchMaterials();
-
-                        // ✅ Close the modal after update
-                        editModal.style.display = "none";
-                    } else {
-                        alert("Failed to update material: " + (data.message || "Unknown error"));
-                    }
-                } catch (error) {
-                    console.error("Error updating material:", error);
-                    
-                    if (error.message.includes("Failed to update")) {
-                        alert("Material update failed: " + error.message);
-                    } else if (!navigator.onLine) {
-                        alert("No internet connection. Please check your network.");
-                    } else {
-                        alert("A network error occurred. Please try again.");
-                    }
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Failed to update: ${errorData.message || 'Unknown error'}`);
                 }
-            } else {
-                alert("Not enough stock available for dispatch!");
+
+                const data = await response.json();
+                console.log("Server Response:", data);
+
+                if (data.success) {
+                    alert("Material updated successfully.");
+                    updateLastUpdated("Material Edited");
+
+                    // ✅ Immediately refresh materials list and dashboard
+                    await fetchMaterials();
+
+                    // ✅ Close the modal after update
+                    editModal.style.display = "none";
+
+                    // Save the last updated timestamp to localStorage
+                    localStorage.setItem('lastUpdated', lastUpdatedFormatted);  // Update local storage
+                } else {
+                    alert("Failed to update material: " + (data.message || "Unknown error"));
+                }
+            } catch (error) {
+                console.error("Error updating material:", error);
+
+                if (error.message.includes("Failed to update")) {
+                    alert("Material update failed: " + error.message);
+                } else if (!navigator.onLine) {
+                    alert("No internet connection. Please check your network.");
+                } else {
+                    alert("A network error occurred. Please try again.");
+                }
             }
+        } else {
+            alert("Not enough stock available for dispatch!");
         }
-    });
+    }
+});
+
 
     // Function to download the summary as Excel
     function downloadExcel() {
