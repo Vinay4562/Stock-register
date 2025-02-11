@@ -24,11 +24,18 @@
         <h2>Login</h2>
         <form id="login-form">
             <input type="text" id="username" placeholder="Username" required>
-            <input type="password" id="password" placeholder="Password" required>
+            <div class="password-container">
+                <input type="password" id="password" placeholder="Password" required>
+                <span class="eye-icon" id="toggle-password" onclick="togglePasswordVisibility()">👁️</span>
+            </div>
             <button type="submit">Login</button>
             <p id="error-message" class="error"></p>
         </form>
     </div>
+
+    <!-- Success and failure popup notifications -->
+    <div id="success-popup" class="popup success">Login Successful!</div>
+    <div id="failure-popup" class="popup failure">Login Failed! Incorrect username or password.</div>
 
     <script>
         document.getElementById("login-form").addEventListener("submit", async function(event) {
@@ -50,8 +57,15 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    window.location.href = result.redirect;
+                    document.getElementById("success-popup").style.display = "block";
+                    setTimeout(() => {
+                        window.location.href = result.redirect;
+                    }, 2000); // Redirect after 2 seconds
                 } else {
+                    document.getElementById("failure-popup").style.display = "block";
+                    setTimeout(() => {
+                        document.getElementById("failure-popup").style.display = "none";
+                    }, 3000); // Hide after 3 seconds
                     document.getElementById("error-message").textContent = result.message;
                 }
             } catch (error) {
@@ -60,6 +74,19 @@
             }
         });
 
+        // Toggle password visibility
+        function togglePasswordVisibility() {
+            const passwordField = document.getElementById("password");
+            const eyeIcon = document.getElementById("toggle-password");
+
+            if (passwordField.type === "password") {
+                passwordField.type = "text";
+                eyeIcon.textContent = "🙈"; // Change to closed eye icon
+            } else {
+                passwordField.type = "password";
+                eyeIcon.textContent = "👁️"; // Change to open eye icon
+            }
+        }
 
         // Disable back navigation after logout by manipulating history
         if (window.location.pathname === '/login.html') {

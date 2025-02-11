@@ -135,6 +135,48 @@ button:hover {
     animation: fadeInError 2s forwards;
 }
 
+ /* Eye icon inside the password field */
+ .password-container {
+    position: relative;
+    width: 100%;
+}
+
+#password {
+    width: 100%;
+    padding-right: 30px; /* Space for the eye icon */
+}
+
+.eye-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+/* Style for success and failure popups */
+.popup {
+    display: none;
+    padding: 20px;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-radius: 5px;
+    font-size: 16px;
+    z-index: 1000;
+}
+
+.popup.success {
+    background-color: green;
+}
+
+.popup.failure {
+    background-color: red;
+}
+
 /* Animations */
 @keyframes fadeIn {
     0% {
