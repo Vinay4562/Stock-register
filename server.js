@@ -71,11 +71,37 @@ app.post('/login', async (req, res) => {
 
   if (user && await bcrypt.compare(password, user.password)) {
     req.session.user = username;
-    res.json({ success: true, redirect: '/material_index.html' });
+    
+    // Fetch last updated date and time
+    try {
+      const lastUpdatedResponse = await fetch('https://stock-register-git-main-vinay-kumars-projects-f1559f4a.vercel.app/api/last-updated', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${req.sessionID}`  // Make sure to include session ID or token for authentication
+        }
+      });
+      
+      const lastUpdatedData = await lastUpdatedResponse.json();
+
+      if (lastUpdatedResponse.ok) {
+        res.json({
+          success: true,
+          lastUpdated: lastUpdatedData.lastUpdated,
+          redirect: '/material_index.html'
+        });
+      } else {
+        res.status(500).json({ success: false, message: 'Failed to fetch last updated date' });
+      }
+    } catch (err) {
+      console.error('Error fetching last updated date:', err);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
   } else {
     res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 });
+
 
 function isAuthenticated(req, res, next) {
   if (req.session.user) {
