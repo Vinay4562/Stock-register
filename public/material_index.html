@@ -340,7 +340,7 @@
             stockList.appendChild(row);
         });
     }
-    
+
     // Helper function to create a material row
     function createMaterialRow(material, index) {
         const { name, type, stock, dispatched, remarks } = material;
@@ -386,13 +386,21 @@
                 <td>
                     <ul class="remarks-list">
                         ${materials.map(material => {
+                            // Handle remarks (ensure they are displayed correctly)
                             const displayRemarks = Array.isArray(material.remarks) && material.remarks.length > 0
-                                ? material.remarks.map(r => (typeof r === "string" ? r.trim() : "Nil"))
+                                ? material.remarks.map(r => 
+                                    (typeof r === 'object' && r.text) 
+                                        ? r.text.trim() 
+                                        : (typeof r === 'string' ? r.trim() : "Nil")
+                                )
                                 : ["Nil"];
 
-                            return ` 
+                            return `
                                 <li>
-                                    ${material.name}: Stock - ${material.stock}, Dispatched - ${material.dispatched}, Total - ${material.stock + material.dispatched}
+                                    <strong>${material.name}</strong>: 
+                                    Stock - ${material.stock}, 
+                                    Dispatched - ${material.dispatched}, 
+                                    Total - ${material.stock + material.dispatched}
                                     <ul class="remarks-list">
                                         ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
                                     </ul>
@@ -407,24 +415,35 @@
     }
 
     function updateSummaryMap(summaryMap, updatedMaterial) {
-        const { type, stock, dispatched, remarks } = updatedMaterial;
+        const { type, stock, dispatched, remarks, _id } = updatedMaterial;
 
-        if (summaryMap[type]) {
-            // Find the material inside the type's material list
-            const materialIndex = summaryMap[type].materials.findIndex(m => m._id === updatedMaterial._id);
-            
-            if (materialIndex !== -1) {
-                // Update the material details
-                summaryMap[type].materials[materialIndex].stock = stock;
-                summaryMap[type].materials[materialIndex].dispatched = dispatched;
-                summaryMap[type].materials[materialIndex].remarks = remarks;
-            }
-
-            // Recalculate totals
-            summaryMap[type].totalStock = summaryMap[type].materials.reduce((sum, m) => sum + m.stock, 0);
-            summaryMap[type].totalDispatched = summaryMap[type].materials.reduce((sum, m) => sum + m.dispatched, 0);
-            summaryMap[type].totalMaterial = summaryMap[type].totalStock + summaryMap[type].totalDispatched;
+        // If the type doesn't exist in the summaryMap, initialize it
+        if (!summaryMap[type]) {
+            summaryMap[type] = {
+                totalStock: 0,
+                totalDispatched: 0,
+                totalMaterial: 0,
+                materials: [],
+            };
         }
+
+        // Find the material in the type's material list
+        const materialIndex = summaryMap[type].materials.findIndex(m => m._id === _id);
+
+        if (materialIndex !== -1) {
+            // Update the existing material
+            summaryMap[type].materials[materialIndex].stock = stock;
+            summaryMap[type].materials[materialIndex].dispatched = dispatched;
+            summaryMap[type].materials[materialIndex].remarks = remarks;
+        } else {
+            // Add the new material to the type's material list
+            summaryMap[type].materials.push(updatedMaterial);
+        }
+
+        // Recalculate totals for the type
+        summaryMap[type].totalStock = summaryMap[type].materials.reduce((sum, m) => sum + m.stock, 0);
+        summaryMap[type].totalDispatched = summaryMap[type].materials.reduce((sum, m) => sum + m.dispatched, 0);
+        summaryMap[type].totalMaterial = summaryMap[type].totalStock + summaryMap[type].totalDispatched;
     }
 
     // Function to fetch materials from the server
