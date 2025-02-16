@@ -56,7 +56,12 @@ const MaterialSchema = new mongoose.Schema({
   type: { type: String, required: true, trim: true, maxlength: 50 },
   stock: { type: Number, required: true, min: 0 },
   dispatched: { type: Number, default: 0, min: 0 },
-  remarks: [{ text: String, date: { type: Date, default: Date.now } }],
+  remarks: [
+      {
+          text: { type: String, required: true }, // Remark text
+          date: { type: Date, default: Date.now }, // Date of the remark
+      },
+  ],
   dispatchHistory: [
       {
           quantity: { type: Number, required: true, min: 1 },
@@ -142,14 +147,19 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
   const { name, type, stock, remarks } = req.body;
 
   try {
+    // Ensure remarks is an array of objects
+    const formattedRemarks = Array.isArray(remarks)
+      ? remarks.map(r => ({ text: r.text || r, date: new Date() })) // Handle both string and object remarks
+      : [{ text: remarks || "Nil", date: new Date() }]; // Default remark if none provided
+
     const newMaterial = new Material({
       name,
       type,
       stock,
       dispatched: 0,
-      remarks: Array.isArray(remarks) ? remarks : [{ text: "Nil" }],
-      addedDate: new Date(),  // ✅ Ensure correct date format
-      lastUpdated: new Date()
+      remarks: formattedRemarks,
+      addedDate: new Date(),
+      lastUpdated: new Date(),
     });
 
     await newMaterial.save();
