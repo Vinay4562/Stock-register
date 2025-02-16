@@ -500,17 +500,16 @@
     }
 
     async function addOrUpdateMaterial() {
-        const existingMaterial = editingIndex !== -1 ? materials[edayingIndex] : null;
+        const existingMaterial = editingIndex !== -1 ? materials[editingIndex] : null; // Fix: Use editingIndex instead of edayingIndex
 
-        // Prepare the material object
         const material = {
             name: materialNameInput.value.trim(),
             type: materialTypeInput.value,
             stock: parseInt(materialStockInput.value, 10) || 0,
             dispatched: parseInt(materialDispatchedInput.value, 10) || 0,
-            remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim(), date: new Date().toISOString() }] : [], // Add date to remarks
+            remarks: materialRemarksInput.value.trim() ? [{ text: materialRemarksInput.value.trim() }] : [],
             addedDate: existingMaterial ? existingMaterial.addedDate : new Date().toISOString(),
-            lastUpdated: new Date().toISOString(), // Set the current timestamp
+            lastUpdated: new Date().toISOString() // Set the current timestamp
         };
 
         const method = existingMaterial ? "PUT" : "POST";
@@ -527,7 +526,7 @@
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(`Failed to add/update material: ${errorData.message || "Unknown error"}`);
+                throw new Error(`Failed to add/update material: ${errorData.message}`);
             }
 
             console.log("Material successfully added/updated.");
@@ -536,20 +535,18 @@
             const lastUpdatedDate = new Date().toLocaleString();
             localStorage.setItem('lastUpdated', lastUpdatedDate);
 
-            // Show success popup
             showSuccessPopup(existingMaterial ? "Material Updated Successfully" : "Material Added Successfully");
 
-            // Refresh data and update the UI
-            await fetchMaterials(); // Refresh the materials list
+            await fetchMaterials(); // Refresh data
             clearForm(); // Clear form fields
-            renderDashboard(calculateSummary(materials)); // Update the dashboard
+            renderDashboard(calculateSummary(materials)); // Update dashboard
 
-            // Update the last updated timestamp on the UI
+            // Call to update the last updated timestamp
             updateLastUpdated(existingMaterial ? "Material Updated" : "Material Added");
 
         } catch (error) {
             console.error("Error during material add/update:", error);
-            alert(`An error occurred: ${error.message}`);
+            alert("An error occurred while adding/updating the material.");
         }
     }
 
