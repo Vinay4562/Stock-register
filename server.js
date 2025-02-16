@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
+const rateLimit = require('express-rate-limit');
 const MongoStore = require('connect-mongo');  // ✅ Store sessions in MongoDB
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
@@ -10,6 +11,13 @@ require('dotenv').config();
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+const limiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+});
+
+app.use(limiter);
 
 // ✅ CORS Configuration
 const corsOptions = {
@@ -115,12 +123,17 @@ app.get('/api/materials', isAuthenticated, async (req, res) => {
 
 app.get('/api/last-updated', isAuthenticated, async (req, res) => {
   try {
-    const lastUpdated = await Material.findOne({}, {}, { sort: { updatedAt: -1 } }).select('updatedAt');
-    if (!lastUpdated) {
-      return res.status(404).json({ message: 'Last updated data not found' });
+    // Find the material with the most recent `updatedAt` timestamp
+    const lastUpdatedMaterial = await Material.findOne({}, {}, { sort: { updatedAt: -1 } }).select('updatedAt');
+
+    if (!lastUpdatedMaterial) {
+      return res.status(404).json({ message: 'No materials found' });
     }
-    res.json({ lastUpdated: lastUpdated.updatedAt });
+
+    // Send the last updated timestamp
+    res.json({ lastUpdated: lastUpdatedMaterial.updatedAt });
   } catch (error) {
+    console.error("Error fetching last updated timestamp:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
