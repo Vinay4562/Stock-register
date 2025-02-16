@@ -263,57 +263,68 @@
 
     // Render the material stock and summary
     function renderStock(filteredMaterials = materials) {
+        if (!Array.isArray(filteredMaterials)) return; // Safety check
+
         stockList.innerHTML = ''; // Clear table before rendering
 
         filteredMaterials.forEach((material, index) => {
             const { 
                 name, 
                 type, 
-                stock, 
-                dispatched, 
-                remarks, 
+                stock = 0, 
+                dispatched = 0, 
+                remarks = [], 
                 addedDate, 
-                updatedAt,  // Use updatedAt from timestamps
-                dispatchHistory 
+                updatedAt,  
+                dispatchHistory = [] 
             } = material;
             
             const totalMaterial = stock + dispatched;
 
-            // 1. Fix remarks display
+            // Function to format dates safely
+            const formatDate = (dateString) => {
+                if (!dateString) return "Unknown";
+                const date = new Date(dateString);
+                return isNaN(date.getTime()) 
+                    ? "Invalid Date" 
+                    : date.toLocaleDateString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+            };
+
+            // Ensure remarks are properly formatted
             const displayRemarks = Array.isArray(remarks) && remarks.length > 0 
                 ? remarks.map(r => 
-                    (typeof r === 'object' && r.text) 
+                    typeof r === 'object' && r.text 
                         ? r.text.trim() 
                         : (typeof r === 'string' ? r.trim() : "Nil")
                 )
                 : ["Nil"];
 
-            // 2. Format dates using a single function
-            const formatDate = (dateString) => {
-                if (!dateString) return "Unknown";
-                const date = new Date(dateString);
-                return date.toLocaleDateString('en-GB', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            };
-
-            // 3. Improved dispatch history display (in a separate column)
+            // Dispatch history with serial numbers in red
             const dispatchHistoryHTML = Array.isArray(dispatchHistory) && dispatchHistory.length > 0
-                ? dispatchHistory.map(d => `
-                    <div class="dispatch-entry">
-                        <small style="color: blue; font-size: 12px;">
-                            Dispatched: ${d.quantity} No's | 
-                            Date: ${formatDate(d.date)} | 
-                            Remarks: ${d.remarks || "Nil"}
-                        </small>
-                    </div>
-                `).join('')
+                ? dispatchHistory.map((d, i) => {
+                    const quantity = d.quantity || "N/A";
+                    const date = formatDate(d.date);
+                    const remark = d.remarks || "Nil";
+                    return `
+                        <div class="dispatch-entry">
+                            <small style="color: red; font-weight: bold;">${i + 1}.</small> 
+                            <small style="color: blue; font-size: 12px;">
+                                Dispatched: ${quantity} No's | 
+                                Date: ${date} | 
+                                Remarks: ${remark}
+                            </small>
+                        </div>
+                    `;
+                }).join('')
                 : "<small>No dispatch history</small>";
 
+            // Create table row
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${index + 1}</td>
