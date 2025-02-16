@@ -143,6 +143,19 @@ button:hover {
   background-color: rgba(211, 47, 47, 0.2); /* Red hover background */
 }
 
+.dispatch-history {
+  max-width: 300px; /* Adjust as needed */
+  word-break: break-word; /* Ensure long text wraps */
+}
+
+.dispatch-entry {
+  padding: 4px 0;
+  border-bottom: 1px solid #eee; /* Add a separator between entries */
+}
+
+.dispatch-entry:last-child {
+  border-bottom: none; /* Remove border for the last entry */
+}
 
 /* Search Bar */
 .search-container {
