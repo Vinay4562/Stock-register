@@ -122,22 +122,23 @@
     <div class="stock-table">
         <h2>Current Stock</h2>
         <table id="stock-table">
-          <thead>
-            <tr>
-              <th>S.No</th>
-              <th>Material Name</th>
-              <th>Material Type</th>
-              <th>Available Stock</th>
-              <th>Used/Dispatched</th>
-              <th>Total Material</th>
-              <th>Remarks</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="stock-list">
-            <!-- Dynamic rows go here -->
-          </tbody>
-        </table>
+            <thead>
+              <tr>
+                <th>S.No</th>
+                <th>Material Name</th>
+                <th>Material Type</th>
+                <th>Available Stock</th>
+                <th>Used/Dispatched</th>
+                <th>Total Material</th>
+                <th>Remarks</th>
+                <th>Dispatch History</th> <!-- New Column -->
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="stock-list">
+              <!-- Dynamic rows go here -->
+            </tbody>
+          </table>
         <!-- Buttons for print and download -->
         <div class="table-actions">
           <button id="print-btn" class="action-btn">Print</button>
@@ -300,16 +301,18 @@
                 });
             };
 
-            // 3. Improved dispatch history display
-            const dispatchHistoryHTML = Array.isArray(dispatchHistory) 
+            // 3. Improved dispatch history display (in a separate column)
+            const dispatchHistoryHTML = Array.isArray(dispatchHistory) && dispatchHistory.length > 0
                 ? dispatchHistory.map(d => `
-                    <small style="color: blue; font-size: 12px;">
-                        Dispatched: ${d.quantity} No's | 
-                        Date: ${formatDate(d.date)} | 
-                        Remarks: ${d.remarks || "Nil"}
-                    </small><br>
+                    <div class="dispatch-entry">
+                        <small style="color: blue; font-size: 12px;">
+                            Dispatched: ${d.quantity} No's | 
+                            Date: ${formatDate(d.date)} | 
+                            Remarks: ${d.remarks || "Nil"}
+                        </small>
+                    </div>
                 `).join('')
-                : "";
+                : "<small>No dispatch history</small>";
 
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -320,8 +323,6 @@
                     </small>
                     <br>
                     <strong>${name}</strong>
-                    <br>
-                    ${dispatchHistoryHTML}
                 </td>
                 <td>${type}</td>
                 <td>${stock}</td>
@@ -331,6 +332,9 @@
                     <ul class="remarks-list">
                         ${displayRemarks.map(r => `<li>${r}</li>`).join('')}
                     </ul>
+                </td>
+                <td class="dispatch-history">
+                    ${dispatchHistoryHTML}
                 </td>
                 <td>
                     <button class="edit-btn" onclick="editMaterial(${index})">Edit</button>
