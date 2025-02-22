@@ -1043,6 +1043,18 @@
         };
     }
 
+    document.addEventListener('keydown', function (event) {
+        if (event.key === "Escape") {
+            closeEditModal(); // Call the function to close the modal
+        }
+    });
+
+    function closeEditModal() {
+        const modal = document.getElementById('editModal'); // Replace 'editModal' with your modal's actual ID
+        if (modal) {
+            modal.style.display = "none"; // Hide the modal
+        }
+    }
 </script>
 </body>
 </html>
