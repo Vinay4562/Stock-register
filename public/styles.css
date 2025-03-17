@@ -35,7 +35,6 @@ body {
 .header-content {
     display: flex;
     align-items: center;
-    position: relative;
     flex-grow: 1; /* Allows content to take available space */
 }
 
@@ -45,7 +44,6 @@ body {
     height: 100px;
     background-color: white;
     margin-left: 20px;
-    z-index: 2;
 }
 
 h1 {
@@ -54,8 +52,8 @@ h1 {
     letter-spacing: 1px;
     animation: slideUp 1s ease-out;
     font-weight: 700;
-    margin-left: 130px; /* Adjusted to ensure title starts after logo */
-    z-index: 1;
+    margin-left: 20px; /* Space between logo and title */
+    white-space: nowrap; /* Prevents title from wrapping */
 }
 
 .hamburger {
@@ -237,7 +235,7 @@ button:hover {
 @media (max-width: 768px) {
     .header h1 {
         font-size: 1.5rem;
-        margin-left: 100px; /* Adjusted for smaller logo */
+        margin-left: 15px; /* Reduced spacing for smaller screens */
     }
 
     .header h1::before {
@@ -272,7 +270,7 @@ button:hover {
 @media (max-width: 480px) {
     .header h1 {
         font-size: 1.2rem;
-        margin-left: 80px; /* Adjusted for smaller logo */
+        margin-left: 10px; /* Further reduced spacing */
     }
 
     .logo {
