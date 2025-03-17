@@ -10,70 +10,111 @@ body {
     background-color: #f0f0f0;
     min-height: 100vh;
     display: flex;
-    justify-content: center; /* Horizontally center the content */
-    align-items: center; /* Vertically center the content */
+    justify-content: center;
+    align-items: center;
     flex-direction: column;
-    padding-top: 150px; /* Add padding to avoid content being hidden behind the fixed header */
-    position: relative; /* Ensure the flex container works as expected */
+    padding-top: 150px;
+    position: relative;
 }
 
 /* Header with blue theme - fixed at the top */
 .header {
     display: flex;
-    flex-direction: column; /* Stack the logo and navbar vertically */
     align-items: center;
-    justify-content: center;
-    background-color: #007BFF; /* Blue background */
+    justify-content: space-between;
+    background-color: #007BFF;
     padding: 20px;
-    width: 100%; /* Ensure the header takes up the full width */
-    position: fixed; /* Fix the header at the top */
+    width: 100%;
+    position: fixed;
     top: 0;
     left: 0;
-    z-index: 1000; /* Ensure the header stays on top of other content */
+    z-index: 1000;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    position: relative;
+    flex-grow: 1; /* Allows content to take available space */
 }
 
 /* Logo styling */
 .logo {
-    width: 100px; /* Adjust size as needed */
-    margin-right: 20px;
-    background-color: white; /* Remove background color */
-    position: absolute;
-    left: 20px; /* Align logo to the left side of the header */
+    width: 100px;
+    height: 100px;
+    background-color: white;
+    margin-left: 20px;
+    z-index: 2;
 }
 
 h1 {
     font-size: 2rem;
-    color: white; /* White text color */
+    color: white;
     letter-spacing: 1px;
     animation: slideUp 1s ease-out;
     font-weight: 700;
-    margin-left: 120px; /* Space for the logo */
-    text-align: center;
+    margin-left: 130px; /* Adjusted to ensure title starts after logo */
+    z-index: 1;
 }
 
-/* Navbar inside the header */
+.hamburger {
+    display: none;
+    font-size: 30px;
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    margin-right: 20px;
+}
+
+/* Navbar styling */
 .navbar {
     display: flex;
     justify-content: center;
     gap: 30px;
-    background-color: transparent; /* Darker blue for navbar */
+    background-color: transparent;
     padding: 10px 0;
     width: 100%;
-    border-radius: 5px;
-    animation: fadeIn 2s ease-in-out;
-    margin-top: 10px; /* Space between the heading and navbar */
+    position: fixed;
+    top: 80px;
+    left: 0;
+    z-index: 1000;
+    transition: all 0.3s ease;
 }
 
 .navbar a {
     text-decoration: none;
-    color: white; /* White text for navbar links */
+    color: white;
     font-size: 1.1rem;
-    transition: color 0.3s ease-in-out;
+    padding: 10px 20px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    transition: color 0.3s ease-in-out, background-color 0.3s ease-in-out;
 }
 
 .navbar a:hover {
-    color: #ffcc00; /* Gold color on hover */
+    color: #ffcc00;
+    background-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Mobile Menu Overlay */
+.navbar.active {
+    display: block;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 250px;
+    height: 100vh;
+    background-color: rgba(0, 123, 255, 0.95);
+    padding: 60px 20px 20px;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.navbar.active a {
+    display: block;
+    margin: 15px 0;
+    text-align: left;
 }
 
 /* Login form styling */
@@ -86,10 +127,9 @@ h1 {
     max-width: 400px;
     text-align: center;
     animation: fadeIn 2s ease-in-out;
-    margin-top: 40px; /* Adjust to place the container under the fixed header */
+    margin-top: 40px;
 }
 
-/* Centered Login form */
 h2 {
     font-size: 2rem;
     color: #333;
@@ -114,7 +154,7 @@ input:focus {
 button {
     width: 100%;
     padding: 12px;
-    background-color: #007BFF; /* Blue button */
+    background-color: #007BFF;
     color: white;
     border: none;
     border-radius: 5px;
@@ -124,7 +164,7 @@ button {
 }
 
 button:hover {
-    background-color: #0056b3; /* Darker blue on hover */
+    background-color: #0056b3;
 }
 
 .error {
@@ -135,15 +175,15 @@ button:hover {
     animation: fadeInError 2s forwards;
 }
 
- /* Eye icon inside the password field */
- .password-container {
+/* Eye icon inside the password field */
+.password-container {
     position: relative;
     width: 100%;
 }
 
 #password {
     width: 100%;
-    padding-right: 30px; /* Space for the eye icon */
+    padding-right: 30px;
 }
 
 .eye-icon {
@@ -179,32 +219,87 @@ button:hover {
 
 /* Animations */
 @keyframes fadeIn {
-    0% {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    100% {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    0% { opacity: 0; transform: translateY(30px); }
+    100% { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
-    0% {
-        transform: translateY(30px);
-        opacity: 0;
-    }
-    100% {
-        transform: translateY(0);
-        opacity: 1;
-    }
+    0% { transform: translateY(30px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
 @keyframes fadeInError {
-    0% {
-        opacity: 0;
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 1.5rem;
+        margin-left: 100px; /* Adjusted for smaller logo */
     }
-    100% {
-        opacity: 1;
+
+    .header h1::before {
+        content: "TG TRANSCO";
+    }
+
+    .hamburger {
+        display: block;
+    }
+
+    .navbar {
+        display: none;
+    }
+
+    .navbar.active {
+        display: block;
+    }
+
+    .login-container {
+        margin-top: 20px;
+        padding: 30px;
+        max-width: 90%;
+    }
+
+    .logo {
+        width: 80px;
+        height: 80px;
+        margin-left: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h1 {
+        font-size: 1.2rem;
+        margin-left: 80px; /* Adjusted for smaller logo */
+    }
+
+    .logo {
+        width: 60px;
+        height: 60px;
+        margin-left: 10px;
+    }
+
+    .hamburger {
+        font-size: 24px;
+    }
+
+    .login-container {
+        padding: 20px;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+
+    .navbar.active {
+        width: 200px;
+    }
+}
+
+@media (min-width: 769px) {
+    .header h1::before {
+        content: "𝐓𝐑𝐀𝐍𝐒𝐌𝐈𝐒𝐒𝐈𝐎𝐍 𝐂𝐎𝐑𝐏𝐎𝐑𝐀𝐓𝐈𝐎𝐍 𝐎𝐅 𝐓𝐄𝐋𝐀𝐍𝐆𝐀𝐍𝐀 𝐋𝐈𝐌𝐈𝐓𝐄𝐃";
     }
 }
