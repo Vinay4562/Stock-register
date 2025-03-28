@@ -74,9 +74,16 @@ const MaterialSchema = new mongoose.Schema({
 
 const Material = mongoose.model("Material", MaterialSchema);
 
+// Load default credentials from .env
 const users = [
-  { username: 'Shankarpally400kv', password: bcrypt.hashSync('Shankarpally@9870', 10) }
+  { username: process.env.DEFAULT_USERNAME, password: process.env.DEFAULT_PASSWORD_HASH }
 ];
+
+// Validate credentials are loaded
+if (!users[0].username || !users[0].password) {
+  console.error('Error: DEFAULT_USERNAME or DEFAULT_PASSWORD_HASH not set in .env');
+  process.exit(1);
+}
 
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
@@ -159,7 +166,6 @@ app.post('/api/materials', isAuthenticated, async (req, res) => {
       dispatched: 0,
       remarks: formattedRemarks,
       addedDate: new Date(),
-      lastUpdated: new Date(),
     });
 
     await newMaterial.save();
@@ -191,7 +197,6 @@ app.put('/api/materials/:id', isAuthenticated, async (req, res) => {
                          : material.remarks; // Retain previous remarks if empty
 
       material.dispatchHistory = dispatchHistory || material.dispatchHistory;
-      material.lastUpdated = new Date(); // Only update lastUpdated
 
       await material.save();
       res.json({ success: true, material });
@@ -220,7 +225,6 @@ app.delete('/api/materials/:id', isAuthenticated, async (req, res) => {
       res.status(500).json({ success: false, message: err.message });
   }
 });
-
 
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
